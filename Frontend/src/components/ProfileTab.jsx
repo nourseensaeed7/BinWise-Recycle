@@ -1,25 +1,49 @@
-import React, { useState, useContext } from "react";
-import { AppContent } from "../context/AppContext";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { CiDiscount1 } from "react-icons/ci";
 import { FaHeart } from "react-icons/fa";
 import { FaGifts } from "react-icons/fa6";
 import { PiPlantFill } from "react-icons/pi";
 import { FaMedal } from "react-icons/fa6";
 import { FaFire } from "react-icons/fa";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const ProfileTabs = () => {
-  const { userData } = useContext(AppContent); // reactive context
   const [activeTab, setActiveTab] = useState("activity");
+  const [activities, setActivities] = useState([]);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // -----------------------
-  // DATA SETUP
-  // -----------------------
-  const activities = userData?.activity?.length
-    ? userData.activity.map((act) => ({
-        ...act,
-        Points: act.Points !== undefined ? act.Points : 0,
-      }))
-    : [];
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // جلب بيانات البروفايل
+        const profileRes = await axios.get("http://localhost:5000/api/auth/profile", {
+          withCredentials: true,
+        });
+        if (profileRes.data.success) setUser(profileRes.data.userData);
+
+        
+        const pickupsRes = await axios.get("http://localhost:5000/api/pickups/my", {
+          withCredentials: true,
+        });
+        if (pickupsRes.data.success) {
+          const mappedActivities = pickupsRes.data.pickups.map((pickup) => ({
+            action: `Pickup ${pickup.status.charAt(0).toUpperCase() + pickup.status.slice(1)}`,
+            date: pickup.createdAt,
+            Points: pickup.awardedPoints || 0, 
+          }));
+          setActivities(mappedActivities);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const rewards = [
     {
@@ -60,17 +84,18 @@ const ProfileTabs = () => {
   const greenMessage = (
     <div className="mt-6 bg-green-200 text-green-900 text-sm font-medium p-4 rounded-lg text-center">
       <b>Great Job this week!</b> You are on a{" "}
-      {userData?.stats?.thisWeek || 0}-day recycling streak!
+      {user?.stats?.thisWeek || 0}-day recycling streak!
       <br />
       Keep it up — you’re only{" "}
-      <b>{5000 - (userData?.points || 0)} points</b> away from reaching the next
+      <b>{5000 - (user?.points || 0)} points</b> away from reaching the next
       level!
     </div>
   );
 
+  if (loading) return <LoadingSpinner />;
+
   return (
     <div className="mt-10 bg-white rounded-4xl shadow-md p-4 sm:p-6">
-      {/* ==== Tab Bar ==== */}
       <div className="bg-gray-200 rounded-4xl p-1 flex justify-between">
         {[
           { key: "activity", label: "Recent Activity" },
@@ -92,7 +117,6 @@ const ProfileTabs = () => {
         ))}
       </div>
 
-      {/* ==== Content ==== */}
       <div className="mt-6">
         {activeTab === "activity" && (
           <>
@@ -109,14 +133,14 @@ const ProfileTabs = () => {
                   >
                     <div>
                       <p className="font-medium text-gray-800">
-                        {item.action || "Recycling activity"}
+                        {item.action}
                       </p>
                       <p className="text-sm text-gray-500">
                         {new Date(item.date).toLocaleDateString()}
                       </p>
                     </div>
                     <span className="bg-green-200 text-green-800 text-sm font-semibold px-3 py-1 rounded-full shadow-sm">
-                      +{item.Points || 0} pts
+                      +{item.Points} pts
                     </span>
                   </div>
                 ))}
