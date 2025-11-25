@@ -5,6 +5,7 @@ import axios from "axios";
 import { AppContent } from "../context/AppContext";
 import ReqHistoryCard from "../components/ReqHistoryCard";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from "react-toastify";
 
 const initState = {
   address: "",
@@ -169,6 +170,10 @@ const calculateGains = (points) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmited(true);
+
+    if(!isLoggedin){
+      return toast.error("Please log in to schedule a pickup.");
+    }
 
     if (
       !state.scheduled_date ||
