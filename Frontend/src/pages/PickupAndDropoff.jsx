@@ -10,7 +10,7 @@ const tabs = [
 ];
 
 const PickupAndDropoff = () => {
-  const [activePage, setActivePage] = useState("pickup");
+  const [activePage, setActivePage] = useState("centers");
   const handlePageChange = (newPage) => {
     setActivePage(newPage);
     window.location.href = `#${newPage}`;
@@ -57,7 +57,6 @@ const PickupAndDropoff = () => {
 
           {/* Page content */}
           <div className="mt-6">
-            {/* {activePage === "pickup" ? <PickupPage /> : <CentersPage />} */}
             {activePage === "centers" ? <CentersPage /> : <PickupPage />}
           </div>
         </div>
