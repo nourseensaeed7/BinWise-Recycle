@@ -19,7 +19,7 @@ const RecyclingProgram = () => {
       description={'Gather your recyclable items like plastic, paper, glass,Cloth and metal . Check whether it is recyclable or not from our scanner.'}
       image={assets.collect}
       button={'View Recycle Scanner'}
-      route={userData?'/recycle-scanner':'/login'}/>
+      route={'/recycle-scanner'}/>
       <Cards
       title={ 'Drop Off or Schedule Pickup'}
       description={'Bring them to a recycling centers or request an easy doorstep pickup. see where is the nearest center.'}
