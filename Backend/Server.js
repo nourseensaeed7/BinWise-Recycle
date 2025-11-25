@@ -14,6 +14,9 @@ import usersRouter from "./routes/userRoutes.js";
 import pickupRoutes from "./routes/pickupRoutes.js"; // ✅ import normally
 import deliveryAgentRoutes from "./routes/deliveryAgentRoutes.js";
 import centersRoutes from "./routes/centersRoutes.js";
+import progressRoutes from "./routes/progressRoutes.js";
+
+
 
 dotenv.config();
 const app = express();
@@ -64,7 +67,7 @@ app.use("/api/posts", postsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/delivery-agents", deliveryAgentRoutes);
 app.use("/api/centers", centersRoutes);
-
+app.use("/api/progress", progressRoutes);
 app.get("/", (req, res) => {
   res.send("Server is running...");
 });

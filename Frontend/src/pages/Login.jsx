@@ -83,7 +83,7 @@ const Login = () => {
 
       {/* Main Card */}
       <div className="flex justify-center items-center m-3 pb-10">
-        <div className="bg-green-50 max-w-3xl min-h-130 shadow-xl  rounded-2xl flex flex-col-reverse md:flex-row items-center overflow-hidden text-green-900 ">
+        <div className="bg-white max-w-3xl min-h-130 shadow-xl  rounded-2xl flex flex-col-reverse md:flex-row items-center overflow-hidden text-green-900 ">
           {/* Left side - Form */}
           <div className="w-full p-6 md:w-[60%] ">
             <h1 className="text-3xl font-bold text-green-900 mb-2">
@@ -183,7 +183,7 @@ const Login = () => {
           </div>
 
           {/* Right side illustration */}
-          <div className=" flex flex-col bg-green-50 items-center justify-between">
+          <div className=" flex flex-col bg-white items-center justify-between">
             <img
             src={assets.logo}
             className="w-[50%] pt-5 md:w-[70%] md:p-0 "

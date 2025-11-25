@@ -5,6 +5,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import roleAuth from "../middleware/roleAuth.js";
 import { io } from "../Server.js";
 
+
 const router = express.Router();
 
 // 🎯 POINTS CALCULATION HELPER FUNCTION
@@ -294,7 +295,6 @@ router.put("/:id/complete", authMiddleware, async (req, res) => {
         },
       },
     });
-
     // 📢 Emit event for admin dashboard
     io.emit("update-pickup", pickup);
 

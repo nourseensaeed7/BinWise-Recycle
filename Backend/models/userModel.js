@@ -68,6 +68,16 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    dailyProgress: {
+      type: Number,
+      default: 0,
+    },
+    
+    lastProgressDate: {
+      type: Date,
+      default: null,
+    },
+    
     badges: {
       type: [String],
       default: ["Eco Starter"],

@@ -6,6 +6,7 @@ import { AppContent } from "../context/AppContext";
 import ReqHistoryCard from "../components/ReqHistoryCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { toast } from "react-toastify";
+import { FaCheckCircle } from "react-icons/fa";
 
 const initState = {
   address: "",
@@ -452,11 +453,11 @@ const calculateGains = (points) => {
               type="submit"
               disabled={submited}
               className={`w-[95%] mt-2 flex items-center justify-center gap-2 rounded-full p-3 transition-all cursor-pointer ${
-                submited ? "bg-green-600 text-white cursor-wait" : "bg-green-700 text-white hover:bg-green-800"
+                submited ? "bg-green-600 text-white " : "bg-green-700 text-white hover:bg-green-800"
               }`}
             >
               <Truck className="mr-1" />
-              {submited ? (editingPickupId ? "Updating..." : "Scheduling...") : editingPickupId ? "Update" : "Schedule Pickup"}
+              {submited && userData ? (editingPickupId ? "Updating..." : "Scheduling...") : editingPickupId ? "Update" : "Schedule Pickup"}
             </button>
           </form>
 
@@ -551,8 +552,8 @@ const calculateGains = (points) => {
               "Real-time updates",
               "Earn points for every pickup",
             ].map((text, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <svg
+              <div key={i} className="flex items-center  gap-2">
+                {/* <svg
                   width="30"
                   height="30"
                   fill="#004932"
@@ -561,7 +562,9 @@ const calculateGains = (points) => {
                   stroke="#004932"
                 >
                   <path d="M177.6,80.43a10,10,0,1,0-19.5,4.5,60.76,60.76,0,0,1-6,44.5c-16.5,28.5-53.5,38.5-82,22-28.5-16-38.5-53-22-81.5s53.5-38.5,82-22a9.86,9.86,0,1,0,10-17c-38.5-22.5-87-9.5-109.5,29a80.19,80.19,0,1,0,147,20.5Z" />
-                </svg>
+                </svg> */}
+                <FaCheckCircle className="text-green-600 text-xl" />
+
                 <p>{text}</p>
               </div>
             ))}
