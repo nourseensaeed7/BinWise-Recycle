@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import ProfileHeader from "../components/ProfileHeader";
-import ProfileSummary from "../components/ProfileSummary";
 import ProfileTabs from "../components/ProfileTab";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
@@ -46,10 +45,6 @@ const Profile = () => {
           <ProfileHeader user={user} />
         </div>
 
-        {/* Profile Summary */}
-        <div className="mb-6">
-          <ProfileSummary user={user} />
-        </div>
 
         {/* Profile Tabs */}
         <div className="mb-6">

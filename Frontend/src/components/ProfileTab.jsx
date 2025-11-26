@@ -36,7 +36,7 @@ const ProfileTabs = () => {
             const points = pickup.awardedPoints || 0;
             const isCompleted = pickup.status === "completed";
 
-            // 🔥 Real gains from backend (fallback to calculation)
+            //  Real gains from backend (fallback to calculation)
             const totalMoney = pickup.gains || (points * 0.15);
 
             return {
@@ -110,15 +110,6 @@ const ProfileTabs = () => {
       unlocked: daysRecycled >= 7,
     },
   ];
-
-  const greenMessage = (
-    <div className="mt-6 bg-green-200 text-green-900 text-sm font-medium p-4 rounded-lg text-center">
-      <b>Great Job this week!</b> You are on a {daysRecycled}-day recycling streak!
-      <br />
-      Keep it up — you're only{" "}
-      <b>{Math.max(0, 5000 - (user?.points || 0))} points</b> away from reaching the next level!
-    </div>
-  );
 
   if (loading) return <LoadingSpinner />;
 
@@ -235,19 +226,13 @@ const ProfileTabs = () => {
               </div>
             )}
 
-            {greenMessage}
+  
           </>
         )}
 
         {/* REWARDS TAB */}
         {activeTab === "rewards" && (
           <>
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <span className="font-semibold">Your Points:</span> {user?.points || 0} points
-              </p>
-            </div>
-
             <h3 className="text-gray-800 font-semibold mb-4">
               Redeem your points for amazing rewards
             </h3>
@@ -284,7 +269,7 @@ const ProfileTabs = () => {
               })}
             </div>
 
-            {greenMessage}
+         
           </>
         )}
 
@@ -325,7 +310,6 @@ const ProfileTabs = () => {
               ))}
             </div>
 
-            {greenMessage}
           </>
         )}
       </div>
