@@ -6,6 +6,9 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import path from "path";
 import connectDB from "./config/mongodb.js";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Routes
 import authRouter from "./routes/authRoutes.js";

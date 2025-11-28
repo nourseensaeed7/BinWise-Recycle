@@ -368,6 +368,8 @@ export const getUserProfile = async (req, res) => {
         stats: user.stats,
         activity: user.activity,
         isAccountVerified: user.isAccountVerified,
+        address: user.address,
+        profileImage: user.profileImage,
       },
     });
   } catch (error) {
@@ -386,6 +388,9 @@ export const updateProfile = async (req, res) => {
     const { name, email, address, level } = req.body;
     const profileImage = req.file;
 
+    console.log("Address:", address);
+    console.log("File uploaded:", req.file ? req.file.filename : "No file");
+
     const user = await userModel.findById(req.userId);
     if (!user)
       return res.status(404).json({ success: false, message: "User not found" });
@@ -395,6 +400,7 @@ export const updateProfile = async (req, res) => {
     if (address) user.address = address;
     if (level) user.level = level;
     if (profileImage) user.profileImage = `/uploads/${profileImage.filename}`;
+    if(req.file) user.profileImage = `/uploads/${req.file.filename}`;
 
     await user.save();
 

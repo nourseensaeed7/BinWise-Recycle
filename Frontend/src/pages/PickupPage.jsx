@@ -47,13 +47,14 @@ const reducers = (state, action) => {
     case "RESET_FORM":
       return {
         ...initState,
+        address: state.address, // Keep the address after form reset
         created_at: new Date().toLocaleDateString("en-EG", {
           timeZone: "Africa/Cairo",
         }),
       };
-      case "SET_PONTS":
+    case "SET_PONTS":
       return { ...state, awardedPoints: action.payload };
-      case "SET_GAINS":
+    case "SET_GAINS":
       return { ...state, gains: action.payload };
     default:
       return state;
@@ -63,7 +64,7 @@ const reducers = (state, action) => {
 const PickupPage = () => {
   const { userData, isLoggedin, loadingUser, refreshUserData, backendUrl } = useContext(AppContent);
   const location = useLocation();
-  const prefilledItems = location.state?.items || []; // Expecting array of objects when present (B)
+  const prefilledItems = location.state?.items || [];
 
   const [state, dispatch] = useReducer(reducers, initState);
   const [submited, setSubmited] = useState(false);
@@ -72,7 +73,34 @@ const PickupPage = () => {
   const [success, setSuccess] = useState(false);
   const [editingPickupId, setEditingPickupId] = useState(null);
 
-  // Prefill AI-detected items (expects objects: { type, quantity, baseWeight, points, estimatedValue })
+  // Load user's profile address when component mounts or user logs in
+  useEffect(() => {
+    const loadUserAddress = async () => {
+      if (isLoggedin && userData?.id && !loadingUser) {
+        try {
+          const res = await axios.get(`${backendUrl}/api/auth/profile`, { 
+            withCredentials: true 
+          });
+          
+          if (res.data.success && res.data.userData.address) {
+            // Only set address if it's not already set or if it's the default value
+            if (!state.address || state.address === "") {
+              dispatch({ 
+                type: "SET_ADDRESS", 
+                payload: res.data.userData.address 
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error loading user address:", error);
+        }
+      }
+    };
+
+    loadUserAddress();
+  }, [isLoggedin, userData?.id, loadingUser, backendUrl]);
+
+  // Prefill AI-detected items
   useEffect(() => {
     if (!prefilledItems || !prefilledItems.length) return;
 
@@ -115,64 +143,59 @@ const PickupPage = () => {
     else setPickupHistory([]);
   }, [isLoggedin, userData?.id, loadingUser]);
 
-const calculatePointsAndDistributeWeight = (items, totalWeight) => {
-  const POINTS_PER_KG = {
-    Plastic: 167,
-    plastic: 167,
-    Paper: 53,
-    paper: 53,
-    Metal: 287,
-    metal: 287,
-    Glass: 23,
-    glass: 23,
-    "E-Waste": 20,
-    "e-waste": 20,
-    electronics: 2000,
-    Electronics: 2000,
-    cardboard: 53,
-    Cardboard: 53,
-    clothes:117,
-    Clothes:117,
+  const calculatePointsAndDistributeWeight = (items, totalWeight) => {
+    const POINTS_PER_KG = {
+      Plastic: 167,
+      plastic: 167,
+      Paper: 53,
+      paper: 53,
+      Metal: 287,
+      metal: 287,
+      Glass: 23,
+      glass: 23,
+      "E-Waste": 20,
+      "e-waste": 20,
+      electronics: 2000,
+      Electronics: 2000,
+      cardboard: 53,
+      Cardboard: 53,
+      clothes: 117,
+      Clothes: 117,
+    };
+    
+    const totalItemWeight = items.reduce((sum, item) => sum + (item.weight || 0), 0);
+    const hasItemWeights = totalItemWeight > 0;
+    
+    let processedItems = [...items];
+    
+    if (!hasItemWeights && totalWeight > 0) {
+      const weightPerItem = totalWeight / items.length;
+      processedItems = items.map(item => ({
+        ...item,
+        weight: weightPerItem
+      }));
+    }
+    
+    const totalPoints = processedItems.reduce((acc, item) => {
+      const perKg = POINTS_PER_KG[item.type] || 0;
+      return acc + perKg * (item.weight || 0);
+    }, 0);
+    
+    return {
+      processedItems,
+      totalPoints: Math.round(totalPoints)
+    };
   };
-  
-  // Check if items already have weights
-  const totalItemWeight = items.reduce((sum, item) => sum + (item.weight || 0), 0);
-  const hasItemWeights = totalItemWeight > 0;
-  
-  let processedItems = [...items];
-  
-  // If items don't have individual weights, distribute total weight evenly
-  if (!hasItemWeights && totalWeight > 0) {
-    const weightPerItem = totalWeight / items.length;
-    processedItems = items.map(item => ({
-      ...item,
-      weight: weightPerItem
-    }));
-  }
-  
-  // Calculate total points
-  const totalPoints = processedItems.reduce((acc, item) => {
-    const perKg = POINTS_PER_KG[item.type] || 0;
-    return acc + perKg * (item.weight || 0);
-  }, 0);
-  
-  return {
-    processedItems,
-    totalPoints: Math.round(totalPoints) // Round to nearest integer
+
+  const calculateGains = (points) => {
+    return parseFloat((points * 0.15).toFixed(2));
   };
-};
 
-//GAINS CALCULATION: 1 point = 0.15 EGP
-const calculateGains = (points) => {
-  return parseFloat((points * 0.15).toFixed(2));
-};
-
-  // Submit pickup (supports AI-prefilled items and manual simple-material -> convert to objects)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmited(true);
 
-    if(!isLoggedin){
+    if (!isLoggedin) {
       return toast.error("Please log in to schedule a pickup.");
     }
 
@@ -187,7 +210,6 @@ const calculateGains = (points) => {
       return;
     }
 
-    // Build items payload (B: objects expected by backend)
     const itemsData = prefilledItems.length
       ? prefilledItems.map((item) => ({
           type: item.type,
@@ -210,7 +232,6 @@ const calculateGains = (points) => {
     };
 
     try {
-      // If editing, call PUT
       if (editingPickupId) {
         await axios.put(`${backendUrl}/api/pickups/${editingPickupId}`, pickupData, { withCredentials: true });
         setEditingPickupId(null);
@@ -218,7 +239,6 @@ const calculateGains = (points) => {
         await axios.post(`${backendUrl}/api/pickups`, pickupData, { withCredentials: true });
       }
 
-      // If items were prefilling from AI, reward points & log activities
       if (prefilledItems.length) {
         const activities = prefilledItems.map((item) => ({
           action: `Recycled ${item.quantity || 1}× ${item.type}`,
@@ -232,7 +252,6 @@ const calculateGains = (points) => {
             { activities },
             { withCredentials: true }
           );
-          // refresh user data to reflect points
           if (typeof refreshUserData === "function") await refreshUserData();
         } catch (err) {
           console.warn("Failed to add activities after pickup:", err);
@@ -250,19 +269,16 @@ const calculateGains = (points) => {
     }
   };
 
-  // Remove pickup from list locally (called by ReqHistoryCard after successful delete)
   const handleDeletePickup = (pickupId) => {
-    console.log(" Removing pickup from list:", pickupId);
+    console.log("Removing pickup from list:", pickupId);
     setPickupHistory((prev) => prev.filter((p) => p._id !== pickupId));
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
   };
 
-  // Populate form for editing
   const handleUpdatePickup = (pickupData) => {
- setEditingPickupId(pickupData._id || pickupData.id || null);
+    setEditingPickupId(pickupData._id || pickupData.id || null);
 
-    // pickupData expected to include: address, weight, time_slot, pickupTime, items, _id
     dispatch({ type: "SET_ADDRESS", payload: pickupData.address || "" });
     dispatch({ type: "SET_WEIGHT", payload: pickupData.weight || 0 });
     dispatch({ type: "SET_TIME", payload: pickupData.time_slot || "" });
@@ -272,9 +288,7 @@ const calculateGains = (points) => {
       dispatch({ type: "SET_DATE", payload: isoDate });
     }
 
-    // set materials from items array
     if (Array.isArray(pickupData.items)) {
-  
       pickupData.items.forEach((item) => {
         const material = (item.type || item.category || item).toLowerCase();
         dispatch({ type: "SET_MATERIAL", payload: material });
@@ -282,9 +296,7 @@ const calculateGains = (points) => {
     }
 
     dispatch({ type: "SET_INSTRUCTIONS", payload: pickupData.instructions || "" });
-
     window.scrollTo({ top: 0, behavior: "smooth" });
-   
   };
 
   if (loadingUser) return <LoadingSpinner />;
@@ -319,10 +331,9 @@ const calculateGains = (points) => {
             </div>
           </div>
 
-          {/* User Status Info */}
           {isLoggedin && userData ? (
             <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-xs md:text-sm  text-blue-700">
+              <p className="text-xs md:text-sm text-blue-700">
                 <span className="font-medium">Scheduling as:</span> 
                 {userData.name} ({userData.email})
               </p>
@@ -330,14 +341,12 @@ const calculateGains = (points) => {
           ) : (
             <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-700">
-                <span className="font-medium">Note:</span> You can schedule pickups without logging in for testing purposes
+                <span className="font-medium">Note:</span> You cannot schedule pickups without logging in 
               </p>
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-4 shadow-xl px-5 rounded-[20px] py-5 w-full">
-            {/* Date + Time */}
             <div className="flex gap-5 flex-col md:flex-row">
               <div className="flex flex-col items-start gap-2 flex-1">
                 <label htmlFor="date" className="text-black">
@@ -347,9 +356,10 @@ const calculateGains = (points) => {
                   type="date"
                   id="date"
                   required
+                  min={new Date().toISOString().split('T')[0]}
                   value={state.scheduled_date || ""}
                   onChange={(e) => dispatch({ type: "SET_DATE", payload: e.target.value })}
-                  className="border-2 border-transparent  rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border focus:border-2 focus:border-solid focus:border-black transtion duration-100 w-full"
+                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border focus:border-2 focus:border-solid focus:border-black transtion duration-100 w-full"
                 />
               </div>
 
@@ -363,7 +373,7 @@ const calculateGains = (points) => {
                   required
                   value={state.time_slot || ""}
                   onChange={(e) => dispatch({ type: "SET_TIME", payload: e.target.value })}
-                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none  focus:border-2 focus:border-solid focus:border-black transtion duration-100 w-full"
+                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border-2 focus:border-solid focus:border-black transtion duration-100 w-full"
                 >
                   <option value="" disabled>
                     Select time slot
@@ -375,7 +385,6 @@ const calculateGains = (points) => {
               </div>
             </div>
 
-            {/* Address */}
             <div className="flex flex-col items-start gap-2">
               <label htmlFor="address" className="text-black">
                 Pickup Address
@@ -387,36 +396,39 @@ const calculateGains = (points) => {
                 required
                 value={state.address}
                 onChange={(e) => dispatch({ type: "SET_ADDRESS", payload: e.target.value })}
-                className="border-2 border-transparent  rounded-xl p-2 bg-gray-100  focus:border-2 focus:border-solid focus:border-black transtion duration-100 text-gray-500 w-full focus:outline-none"
+                className="border-2 border-transparent rounded-xl p-2 bg-gray-100 focus:border-2 focus:border-solid focus:border-black transtion duration-100 text-gray-500 w-full focus:outline-none"
               />
+              {isLoggedin && userData?.address && state.address !== userData.address && (
+                <p className="text-xs text-gray-500">
+                   Tip: You can use your saved address from profile or enter a different one
+                </p>
+              )}
             </div>
 
-            {/* Material */}
             <div className="flex flex-col items-start gap-2">
               <label htmlFor="material" className="text-black">
                 Material for pickup
               </label>
 
-                <div className="grid grid-cols-2 gap-1 md:m-1 md:gap-3">
-                  {["plastic", "glass", "cardboard","clothes","paper", "metal", "electronics"].map((item) => (
-                    <div key={item}>
-                      <input
-                        type="checkbox"
-                        id={item}
-                        value={item}
-                        checked={state.material.includes(item)}
-                        onChange={(e) => dispatch({ type: "SET_MATERIAL", payload: e.target.value })}
-                        className="accent-gray-800"
-                      />
-                      <label htmlFor={item} className="text-black ml-1  capitalize">
-                        {item}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 gap-1 md:m-1 md:gap-3">
+                {["plastic", "glass", "cardboard", "clothes", "paper", "metal", "electronics"].map((item) => (
+                  <div key={item}>
+                    <input
+                      type="checkbox"
+                      id={item}
+                      value={item}
+                      checked={state.material.includes(item)}
+                      onChange={(e) => dispatch({ type: "SET_MATERIAL", payload: e.target.value })}
+                      className="accent-gray-800"
+                    />
+                    <label htmlFor={item} className="text-black ml-1 capitalize">
+                      {item}
+                    </label>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Weight */}
             <div className="flex flex-col items-start gap-2">
               <label htmlFor="weight" className="text-black">
                 Estimated Weight (kg)
@@ -427,13 +439,12 @@ const calculateGains = (points) => {
                 placeholder="e.g. 5"
                 min={1}
                 required
-                /* value={state.weight|| 0} */
+                value={state.weight}
                 onChange={(e) => dispatch({ type: "SET_WEIGHT", payload: e.target.value })}
-                className="border-2 border-transparent  rounded-xl p-2 bg-gray-100 text-gray-500 w-full focus:outline-none focus:border-2 focus:border-solid focus:border-black transtion duration-100"
+                className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 w-full focus:outline-none focus:border-2 focus:border-solid focus:border-black transtion duration-100"
               />
             </div>
 
-            {/* Instructions */}
             <div className="flex flex-col items-start gap-2">
               <label htmlFor="instructions" className="text-black">
                 Special Instructions
@@ -447,13 +458,11 @@ const calculateGains = (points) => {
               ></textarea>
             </div>
 
-      
-
             <button
               type="submit"
               disabled={submited}
               className={`w-[95%] mt-2 flex items-center justify-center gap-2 rounded-full p-3 transition-all cursor-pointer ${
-                submited ? "bg-green-600 text-white " : "bg-green-700 text-white hover:bg-green-800"
+                submited ? "bg-green-600 text-white" : "bg-green-700 text-white hover:bg-green-800"
               }`}
             >
               <Truck className="mr-1" />
@@ -462,13 +471,12 @@ const calculateGains = (points) => {
           </form>
 
           {success && (
-            <div className="mt-4 p-4 bg-[rgba(0,0,0,0.2)]  border border-green-200 rounded-lg text-green-800">
+            <div className="mt-4 p-4 bg-[rgba(0,0,0,0.2)] border border-green-200 rounded-lg text-green-800">
               Pickup scheduled successfully! wait for confirmation.
             </div>
           )}
         </div>
 
-        {/* Pickup History */}
         <div className="flex flex-col gap-5 w-full md:w-[35%]">
           <div className="bg-white rounded-2xl p-4 shadow-xl px-5">
             <div className="text-start mb-4">
@@ -543,8 +551,7 @@ const calculateGains = (points) => {
             )}
           </div>
 
-          {/* Tips */}
-          <div className="bg-white  rounded-2xl p-4 text-black space-y-2 shadow-xl px-5">
+          <div className="bg-white rounded-2xl p-4 text-black space-y-2 shadow-xl px-5">
             {[
               "Convenient door-to-door service",
               "Proper sorting and handling",
@@ -552,19 +559,8 @@ const calculateGains = (points) => {
               "Real-time updates",
               "Earn points for every pickup",
             ].map((text, i) => (
-              <div key={i} className="flex items-center  gap-2">
-                {/* <svg
-                  width="30"
-                  height="30"
-                  fill="#004932"
-                  viewBox="0 0 200 200"
-                  xmlns="http://www.w3.org/2000/svg"
-                  stroke="#004932"
-                >
-                  <path d="M177.6,80.43a10,10,0,1,0-19.5,4.5,60.76,60.76,0,0,1-6,44.5c-16.5,28.5-53.5,38.5-82,22-28.5-16-38.5-53-22-81.5s53.5-38.5,82-22a9.86,9.86,0,1,0,10-17c-38.5-22.5-87-9.5-109.5,29a80.19,80.19,0,1,0,147,20.5Z" />
-                </svg> */}
+              <div key={i} className="flex items-center gap-2">
                 <FaCheckCircle className="text-green-600 text-xl" />
-
                 <p>{text}</p>
               </div>
             ))}

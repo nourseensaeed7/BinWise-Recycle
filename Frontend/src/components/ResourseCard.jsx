@@ -1,4 +1,5 @@
 import React from 'react'
+import { Book } from 'lucide-react'
 const ResourseCard = (props) => {
     return (
         <div>
@@ -8,7 +9,7 @@ const ResourseCard = (props) => {
                 </div>
                 <h2 className='text-lg mb-2'>{props.title}</h2>
                 <p className='text-sm text-gray-500 mb-4'>{props.text}</p>
-                <div className='flex justify-between  text-gray-500'>{props.text2}<button className='border rounded-md px-1 border-gray-400 text-black cursor-pointer hover:bg-gray-100'onClick={() => window.open(props.url, "_blank")}>📖Read More</button></div>
+                <div className='flex justify-between  text-gray-500'>{props.text2}<button className='border rounded-md px-1 border-gray-400 text-black cursor-pointer hover:bg-gray-100 flex items-center gap-2'onClick={() => window.open(props.url, "_blank")}><Book/>Read More</button></div>
             </div>
         </div>
     )

@@ -1,4 +1,5 @@
 import React from 'react'
+import { MoveUpRight } from 'lucide-react';
 import ResourseCard from '../components/ResourseCard';
 const AwarenessResourses = () => {
     return (
@@ -20,24 +21,24 @@ const AwarenessResourses = () => {
                 </div>
                 <div className="mt-8  ">
                     <ul className="grid grid-cols-2 gap-3 text-blue-600 text-lg font-medium list-none ">
-                        <li><a href="https://www.epa.gov/recycle" className="hover:underline" target="_blank" >
-                            ↗️ EPA Recycling Information
+                        <li><a href="https://www.epa.gov/recycle" className="hover:underline flex gap-2 items-center" target="_blank" >
+                            <MoveUpRight /> EPA Recycling Information
                         </a></li>
-                        <li><a href="https://www.recyclingpartnership.org/" className="hover:underline" target="_blank">
-                            ↗️ The Recycling Partnership
+                        <li><a href="https://www.recyclingpartnership.org/" className="hover:underline flex gap-2 items-center" target="_blank">
+                            <MoveUpRight />  The Recycling Partnership
                         </a></li>
-                        <li><a href="https://www.conservation.org/" className="hover:underline" target="_blank" >
-                            ↗️ Conservation International
+                        <li><a href="https://www.conservation.org/" className="hover:underline flex gap-2 items-center" target="_blank" >
+                            <MoveUpRight />  Conservation International
                         </a></li>
                         <li>
-                            <a href="https://www.earthday.org/" className="hover:underline" target="_blank" >
-                                ↗️ Earth Day Network
+                            <a href="https://www.earthday.org/" className="hover:underline flex gap-2 items-center" target="_blank" >
+                                <MoveUpRight />  Earth Day Network
                             </a></li>
-                        <li><a href="https://marketstreetrecycling.com/7-ways-local-residents-can-contribute-to-recycling-efforts/" className="hover:underline" target="_blank" >
-                            ↗️ Local Residents to Recycling
+                        <li><a href="https://marketstreetrecycling.com/7-ways-local-residents-can-contribute-to-recycling-efforts/" className="hover:underline flex gap-2 items-center" target="_blank" >
+                            <MoveUpRight />  Local Residents to Recycling
                         </a></li>
-                        <li><a href="https://search.earth911.com/" className="hover:underline" target="_blank" >
-                            ↗️ Earth911 Recycling Search
+                        <li><a href="https://search.earth911.com/" className="hover:underline flex gap-2 items-center" target="_blank" >
+                            <MoveUpRight />  Earth911 Recycling Search
                         </a></li>
                     </ul>
                 </div>

@@ -81,7 +81,7 @@ export default function MapComp({ centers = [] }) {
           setUserPosition(userCoords);
         },
         (err) => {
-          console.warn("⚠️ Could not get user location:", err.message);
+          console.warn(" Could not get user location:", err.message);
         },
         { enableHighAccuracy: true, timeout: 5000 }
       );
@@ -113,7 +113,7 @@ export default function MapComp({ centers = [] }) {
           if (coords) {
             results.push({ ...center, coords });
           } else {
-            console.warn(`❌ Could not geocode center: ${center.name}`);
+            console.warn(` Could not geocode center: ${center.name}`);
           }
         }
         

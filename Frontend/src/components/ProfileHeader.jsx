@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import LoadingSpinner from "../components/LoadingSpinner";
+import {toast} from "react-toastify";
 
 const ProfileHeader = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +26,6 @@ const ProfileHeader = () => {
       document.body.classList.remove("overflow-hidden");
     }
   
-    // Cleanup (runs when component unmounts)
     return () => document.body.classList.remove("overflow-hidden");
   }, [isOpen]);
   
@@ -33,34 +33,35 @@ const ProfileHeader = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        // جلب بيانات المستخدم
+        // Fetch user data
         const res = await axios.get("/api/auth/profile", { withCredentials: true });
         if (res.data.success) setUser(res.data.userData);
 
-        // جلب الـ pickups الخاصة بالمستخدم
+        // Fetch user pickups
         const pickupsRes = await axios.get("/api/pickups/my", { withCredentials: true });
         if (pickupsRes.data.success) {
           const pickups = pickupsRes.data.pickups;
 
-          // حساب عدد الأيام المختلفة اللي فيها pickups
           const uniqueDays = new Set(pickups.map((p) => new Date(p.createdAt).toDateString()));
 
-          // حساب مجموع النقاط من كل الـ pickups
           const totalPointsFromPickups = pickups.reduce(
             (acc, p) => acc + (p.awardedPoints || 0),
             0
           );
 
-          // تحديث formData
+          // Update formData with fetched data
           setFormData({
             name: res.data.userData.name,
             email: res.data.userData.email,
-            address: res.data.userData.address,
-            profileImage: res.data.userData.profileImage || null,
+            address: res.data.userData.address || "Enter your address",
+            // Add server URL to profile image if it exists
+            profileImage: res.data.userData.profileImage 
+              ? `http://localhost:5000${res.data.userData.profileImage}`
+              : null,
             level: res.data.userData.level || "Beginner",
             daysRecycled: uniqueDays.size,
             points: totalPointsFromPickups,
-            Gains: totalPointsFromPickups*0.15, 
+            Gains: totalPointsFromPickups * 0.15, 
           });
         }
       } catch (error) {
@@ -79,10 +80,49 @@ const ProfileHeader = () => {
     else setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setUser({ ...user, ...formData });
-    setIsOpen(false);
+    
+    try {
+      // Create FormData for file upload
+      const submitData = new FormData();
+      submitData.append("name", formData.name);
+      submitData.append("email", formData.email);
+      submitData.append("address", formData.address);
+      
+      // Only append image if it's a new file (File object)
+      if (formData.profileImage && formData.profileImage instanceof File) {
+        submitData.append("profileImage", formData.profileImage);
+      }
+
+      // Send update request
+      const res = await axios.put("/api/auth/update-profile", submitData, {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      if (res.data.success) {
+        // Update local state with new data
+        setUser(res.data.userData);
+        
+        // Update formData with response (including new image URL)
+        setFormData(prev => ({
+          ...prev,
+          address: res.data.userData.address,
+          profileImage: res.data.userData.profileImage 
+            ? `http://localhost:5000${res.data.userData.profileImage}`
+            : prev.profileImage,
+        }));
+        
+        setIsOpen(false);
+        toast.success("Profile updated successfully!");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      alert("Failed to update profile. Please try again.");
+    }
   };
 
   if (loading) return <LoadingSpinner />;
