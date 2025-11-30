@@ -84,7 +84,7 @@ const NavBar = () => {
           </NavLink>
         </li>
         <li>
-          <NavLink to="/pickup" className={navLinkClass}>
+          <NavLink to="/pickup-and-dropoff" className={navLinkClass}>
             Pickup & Drop-off
           </NavLink>
         </li>

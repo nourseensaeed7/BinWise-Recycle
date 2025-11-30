@@ -1,6 +1,8 @@
 import React, { useRef, useState } from "react";
 import { IoCameraOutline } from "react-icons/io5";
 import { MdOutlineFileUpload, MdDeleteOutline } from "react-icons/md";
+import { GrCircleInformation } from "react-icons/gr";
+
 import Webcam from "react-webcam";
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
@@ -49,91 +51,7 @@ const RecycleCamera = () => {
     }
   };
 
-  // points per kg for each material
-  const POINTS_PER_KG = {
-    plastic: 167,
-    paper: 53,
-    cardboard: 53,
-    glass: 23,
-    clothes: 117,
-    metal: 287,
-    electronics: 2000,
-  };
-
-  const POINT_PRICE = 0.15;
-
-  // Normalize material names from API to our defined categories
-  const normalizeMaterial = (material) => {
-    if (!material) return "plastic"; // default
-
-    const mat = material.toLowerCase();
-
-    // Check each material type
-    if (
-      mat.includes("plastic") ||
-      mat.includes("bottle") ||
-      mat.includes("cup") ||
-      mat.includes("bag")
-    )
-      return "plastic";
-
-    if (mat.includes("paper")) return "paper";
-
-    if (mat.includes("cardboard") || mat.includes("box")) return "cardboard";
-
-    if (mat.includes("glass") || mat.includes("jar")) return "glass";
-
-    if (
-      mat.includes("clothes") ||
-      mat.includes("fabric") ||
-      mat.includes("textile") ||
-      mat.includes("cloth")
-    )
-      return "clothes";
-
-    if (
-      mat.includes("metal") ||
-      mat.includes("aluminum") ||
-      mat.includes("steel") ||
-      mat.includes("can") ||
-      mat.includes("iron")
-    )
-      return "metal";
-
-    if (
-      mat.includes("electronic") ||
-      mat.includes("battery") ||
-      mat.includes("wire") ||
-      mat.includes("device")
-    )
-      return "electronics";
-
-    // Default to plastic if unknown
-    console.warn("⚠️ Unknown material:", material, "- defaulting to plastic");
-    return "plastic";
-  };
-
-  const computePoints = (weightKg, material) => {
-    const normalizedMaterial = normalizeMaterial(material);
-    const pointsPerKg = POINTS_PER_KG[normalizedMaterial];
-    const points = weightKg * pointsPerKg;
-
-    //  Debug log
-    console.log(
-      `📊 Material: "${material}" → "${normalizedMaterial}" | Weight: ${weightKg}kg | Points: ${points.toFixed(
-        2
-      )}`
-    );
-
-    return Math.round(points * 100) / 100;
-  };
-
-  const computeEstimatedValue = (weightKg, material) => {
-    const points = computePoints(weightKg, material);
-    const value = points * POINT_PRICE;
-    return Math.round(value * 100) / 100;
-  };
-
+  
   const mapApiResponseToPhoto = async (imageSrc, apiData) => {
     const img = new Image();
     img.src = imageSrc;
@@ -150,8 +68,6 @@ const RecycleCamera = () => {
         weight_g: d.weight_g ?? 0,
         weight_kg: Number(weightKg.toFixed(3)),
         baseWeightKg: Number(weightKg.toFixed(3)),
-        points: computePoints(weightKg, d.material),
-        estimatedValue: computeEstimatedValue(weightKg, d.material),
         box_xyxy: Array.isArray(d.box_xyxy) ? d.box_xyxy : null,
         quantity: 1,
       };
@@ -232,7 +148,7 @@ const RecycleCamera = () => {
           return {
             ...d,
             quantity: qty,
-            estimatedValue: computeEstimatedValue(updatedWeightKg, d.material),
+            weight_kg: updatedWeightKg, // just update weight
           };
         });
 
@@ -246,15 +162,20 @@ const RecycleCamera = () => {
       p.detections.map((d) => ({
         type: d.material,
         quantity: d.quantity,
-        baseWeight: d.weight_kg,
-        points: d.points,
-        estimatedValue: d.estimatedValue,
+        weight_kg: d.weight_kg,
         photoSrc: p.src,
       }))
     );
-
-    navigate("/pickup#pickup", { state: { items } });
+  
+    // Calculate total weight
+    const totalWeight = items.reduce((sum, item) => sum + item.weight_kg, 0);
+  
+    // Add instructions field
+    const instructions = `Total weight of items: ${totalWeight.toFixed(2)} kg`;
+  
+    navigate("/pickup-and-dropoff/pickup", { state: { items, instructions } });
   };
+  
 
   const renderBoundingBoxes = (photo, displayedWidth, displayedHeight) => {
     if (!photo.detections || photo.detections.length === 0) return null;
@@ -337,7 +258,7 @@ const RecycleCamera = () => {
               screenshotFormat="image/jpeg"
               className="rounded-lg shadow-lg w-full"
               videoConstraints={{
-                width: 1280 ,
+                width: 1280,
                 height: 720,
                 facingMode: "environment",
               }}
@@ -384,6 +305,19 @@ const RecycleCamera = () => {
           style={{ display: "none" }}
         />
       </div>
+      <div className="flex gap-3 bg-blue-100 border border-blue-200 rounded-lg p-2 my-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-1 my-1">
+        <GrCircleInformation className=" w-fit  text-blue-800" />
+          <h3 className="font-semibold text-blue-800 text-sm ">
+          Notice
+          </h3>
+         </div>
+          <p className="text-blue-700 text-sm">
+          All items should ideally be of the same material for accurate pickup.
+          </p>
+        </div>
+      </div>
 
       {/* Photos History */}
       {photos.length > 0 && (
@@ -427,11 +361,12 @@ const RecycleCamera = () => {
                     height: imgSizes[photo.id]?.height || 180,
                   }}
                 >
-                  {renderBoundingBoxes(
-                    photo,
-                    imgSizes[photo.id]?.width || 240,
-                    imgSizes[photo.id]?.height || 180
-                  )}
+                  {photo.detections &&
+                    renderBoundingBoxes(
+                      photo,
+                      imgSizes[photo.id]?.width || 240,
+                      imgSizes[photo.id]?.height || 180
+                    )}
                 </div>
               </div>
 
@@ -450,7 +385,7 @@ const RecycleCamera = () => {
                       </h3>
                       <p className="text-yellow-700 text-xs">
                         No items detected. The image might not be clear. Please
-                        try another photo.{" "}
+                        try another photo.
                       </p>
                     </div>
                   </div>
@@ -468,16 +403,6 @@ const RecycleCamera = () => {
                       <div className="flex justify-between flex-col sm:flex-row md:flex-row">
                         <span className="font-medium">Weight:</span>
                         <span>{d.weight_kg.toFixed(2)} kg</span>
-                      </div>
-
-                      <div className="flex justify-between flex-col sm:flex-row md:flex-row">
-                        <span className="font-medium">Points Earned:</span>
-                        <span>{d.points} pts</span>
-                      </div>
-
-                      <div className="flex justify-between flex-col sm:flex-row md:flex-row">
-                        <span className="font-medium">Estimated Value:</span>
-                        <span>{Number(d.estimatedValue).toFixed(2)} EGP</span>
                       </div>
 
                       <div className="flex  gap-2 mt-2 flex-col item sm:flex-row md:flex-row">
@@ -499,33 +424,9 @@ const RecycleCamera = () => {
                     </div>
                   ))
                 )}
-
-                {/* Only show totals if there are detections */}
-                {photo.detections.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex justify-between">
-                      <span className="font-medium">Photo Total Weight:</span>
-                      <span>
-                        {photo.detections
-                          .reduce((s, dd) => s + dd.weight_kg * dd.quantity, 0)
-                          .toFixed(2)}{" "}
-                        kg
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Photo Total Points:</span>
-                      <span>
-                        {photo.detections.reduce(
-                          (s, dd) => s + dd.points * dd.quantity,
-                          0
-                        )}{" "}
-                        pts
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
+            
           ))}
 
           <div className="self-center">

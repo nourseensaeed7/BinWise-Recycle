@@ -25,7 +25,7 @@ const RecyclingProgram = () => {
       description={'Bring them to a recycling centers or request an easy doorstep pickup. see where is the nearest center.'}
       image={assets.middle}
       button={'View Centers'}
-      route={'/pickup'}/>
+      route={'/pickup-and-dropoff/centers'}/>
       <Cards
       title={ 'Earn Rewards'}
       description={'Get rewarded for every item you recycle — earn points, discounts, or cash-back while helping the planet.'}

@@ -210,7 +210,7 @@ const ProfileHeader = () => {
                 id="address"
                 type="text"
                 name="address"
-                value={formData.address}
+                // value={formData.address}
                 onChange={handleChange}
                 placeholder="Address"
                 className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"

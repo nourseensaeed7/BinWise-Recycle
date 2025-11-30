@@ -41,7 +41,7 @@ useEffect(() => {
       {/* Map and Centers */}
       <div className="flex flex-col lg:flex-row gap-6 py-3 rounded-2xl ">
         {/* Map */}
-        <div className="w-full lg:w-1/2 bg-white p-6 rounded-2xl shadow-md">
+        <div className="w-full lg:w-1/2 bg-white p-6 rounded-2xl h-fit shadow-md">
        <div className="flex gap-2 items-center">
          <MapPinHouse />
         <h2 className="text-2xl bold">Map</h2>

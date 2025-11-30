@@ -125,7 +125,7 @@ const ProfileTabs = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`w-1/3 py-2 text-xs sm:text-base font-semibold capitalize transition-all duration-300 ${
+            className={`w-1/3 py-2 text-xs sm:text-base font-semibold capitalize transition-all duration-300 cursor-pointer ${
               activeTab === tab.key
                 ? "bg-white text-gray-900 shadow-md rounded-4xl"
                 : "bg-gray-200 text-gray-700 rounded-4xl"

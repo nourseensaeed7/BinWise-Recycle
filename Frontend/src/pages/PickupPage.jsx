@@ -8,130 +8,176 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import { toast } from "react-toastify";
 import { FaCheckCircle } from "react-icons/fa";
 
+const POINTS_PER_KG = {
+  plastic: 167,
+  paper: 53,
+  metal: 287,
+  glass: 23,
+  "e-waste": 20,
+  electronics: 2000,
+  cardboard: 53,
+  clothes: 117,
+  wood: 100,
+};
+
 const initState = {
   address: "",
   material: [],
   weight: "",
   instructions: "",
-  scheduled_date: null,
-  time_slot: null,
-  created_at: new Date().toLocaleDateString("en-EG", {
-    timeZone: "Africa/Cairo",
-    awardedPoints: 0,
-    gains: 0,
-  }),
+  scheduled_date: "",
+  time_slot: "",
+  awardedPoints: 0,
+  gains: 0,
 };
 
-const reducers = (state, action) => {
+const reducer = (state, action) => {
   switch (action.type) {
-    case "SET_DATE":
-      return { ...state, scheduled_date: action.payload };
-    case "SET_TIME":
-      return { ...state, time_slot: action.payload };
     case "SET_ADDRESS":
       return { ...state, address: action.payload };
     case "SET_MATERIAL": {
       const material = action.payload.toLowerCase();
-      const currentMaterials = state.material;
-      if (currentMaterials.includes(material)) {
-        return { ...state, material: currentMaterials.filter((m) => m !== material) };
-      }
-      return { ...state, material: [...currentMaterials, material] };
+      // Replace with single selection
+      const currentMaterials = [material];
+
+      // Recalculate points & gains
+      const perMaterialWeight =
+        state.weight && currentMaterials.length
+          ? parseFloat(state.weight) / currentMaterials.length
+          : 0;
+
+      const totalPoints = currentMaterials.reduce(
+        (sum, mat) => sum + (POINTS_PER_KG[mat] || 0) * perMaterialWeight,
+        0
+      );
+      const totalGains = totalPoints * 0.15;
+
+      return {
+        ...state,
+        material: currentMaterials,
+        awardedPoints: Math.round(totalPoints),
+        gains: parseFloat(totalGains.toFixed(2)),
+      };
     }
-    case "SET_DETECTED_MATERIALS":
-      return { ...state, material: action.payload.map((m) => m.toLowerCase()) };
-    case "SET_WEIGHT":
-      return { ...state, weight: action.payload };
+
+    case "SET_WEIGHT": {
+      const weight = parseFloat(action.payload) || 0;
+      const perWeight = state.material.length
+        ? weight / state.material.length
+        : 0;
+      const totalPoints = state.material.reduce(
+        (sum, m) => sum + (POINTS_PER_KG[m] || 0) * perWeight,
+        0
+      );
+      return {
+        ...state,
+        weight: action.payload,
+        awardedPoints: Math.round(totalPoints),
+        gains: parseFloat((totalPoints * 0.15).toFixed(2)),
+      };
+    }
     case "SET_INSTRUCTIONS":
       return { ...state, instructions: action.payload };
+    case "SET_DATE":
+      return { ...state, scheduled_date: action.payload };
+    case "SET_TIME":
+      return { ...state, time_slot: action.payload };
     case "RESET_FORM":
+      return { ...initState, address: state.address };
+    case "SET_DETECTED_FROM_SCANNER": {
+      // action.payload = { items: [{ type, quantity, weight_kg }], totalWeight }
+      const { items, totalWeight } = action.payload;
+
+      // Prepare instructions string
+      const instructions = `Detected items: ${items
+        .map((i) => `${i.type} x ${i.quantity}`)
+        .join(", ")} | Total weight: ${totalWeight.toFixed(2)} kg`;
+
+      // Preselect the first detected material
+      const selectedMaterial = items.length
+        ? [items[0].type.toLowerCase()]
+        : [];
+
+      // Calculate points & gains
+      const perMaterialWeight = selectedMaterial.length
+        ? totalWeight / selectedMaterial.length
+        : 0;
+
+      const totalPoints = selectedMaterial.reduce(
+        (sum, mat) => sum + (POINTS_PER_KG[mat] || 0) * perMaterialWeight,
+        0
+      );
+
       return {
-        ...initState,
-        address: state.address, // Keep the address after form reset
-        created_at: new Date().toLocaleDateString("en-EG", {
-          timeZone: "Africa/Cairo",
-        }),
+        ...state,
+        material: selectedMaterial,
+        weight: totalWeight,
+        instructions,
+        awardedPoints: Math.round(totalPoints),
+        gains: parseFloat((totalPoints * 0.15).toFixed(2)),
       };
-    case "SET_PONTS":
-      return { ...state, awardedPoints: action.payload };
-    case "SET_GAINS":
-      return { ...state, gains: action.payload };
+    }
+
     default:
       return state;
   }
 };
 
 const PickupPage = () => {
-  const { userData, isLoggedin, loadingUser, refreshUserData, backendUrl } = useContext(AppContent);
-  const location = useLocation();
-  const prefilledItems = location.state?.items || [];
-
-  const [state, dispatch] = useReducer(reducers, initState);
-  const [submited, setSubmited] = useState(false);
+  const { userData, isLoggedin, loadingUser, backendUrl } =
+    useContext(AppContent);
+  const [state, dispatch] = useReducer(reducer, initState);
   const [pickupHistory, setPickupHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [editingPickupId, setEditingPickupId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const location = useLocation();
+  // const prefilledItems = location.state?.items || [];
+  const prefilledItems = location.state?.items || [];
 
-  // Load user's profile address when component mounts or user logs in
   useEffect(() => {
-    const loadUserAddress = async () => {
-      if (isLoggedin && userData?.id && !loadingUser) {
-        try {
-          const res = await axios.get(`${backendUrl}/api/auth/profile`, { 
-            withCredentials: true 
-          });
-          
-          if (res.data.success && res.data.userData.address) {
-            // Only set address if it's not already set or if it's the default value
-            if (!state.address || state.address === "") {
-              dispatch({ 
-                type: "SET_ADDRESS", 
-                payload: res.data.userData.address 
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Error loading user address:", error);
-        }
-      }
-    };
+    if (!prefilledItems.length) return;
 
-    loadUserAddress();
-  }, [isLoggedin, userData?.id, loadingUser, backendUrl]);
-
-  // Prefill AI-detected items
-  useEffect(() => {
-    if (!prefilledItems || !prefilledItems.length) return;
-
-    const detectedMaterials = prefilledItems.map((i) => i.type);
-    dispatch({ type: "SET_DETECTED_MATERIALS", payload: detectedMaterials });
-
+    // Calculate total weight from detected items
     const totalWeight = prefilledItems.reduce(
-      (sum, i) => sum + (i.baseWeight || 0) * (i.quantity || 1),
+      (sum, i) => sum + (i.weight_kg || i.weight || 0),
       0
     );
-    dispatch({ type: "SET_WEIGHT", payload: totalWeight ? totalWeight.toFixed(2) : "" });
 
+    // Dispatch to prefill the form: first material selected, weight displayed, instructions filled
     dispatch({
-      type: "SET_INSTRUCTIONS",
-      payload: `Detected: ${prefilledItems.map((i) => `${i.quantity || 1}× ${i.type}`).join(", ")}`,
+      type: "SET_DETECTED_FROM_SCANNER",
+      payload: {
+        items: prefilledItems,
+        totalWeight,
+      },
     });
   }, [prefilledItems]);
 
-  // Fetch user's pickup history
-  const fetchMyPickups = async () => {
-    if (!isLoggedin || !userData?.id) return setPickupHistory([]);
+  // Load user address
+  useEffect(() => {
+    if (!isLoggedin || !userData?.id || loadingUser) return;
+    axios
+      .get(`${backendUrl}/api/auth/profile`, { withCredentials: true })
+      .then((res) => {
+        if (res.data.success && res.data.userData.address)
+          dispatch({ type: "SET_ADDRESS", payload: res.data.userData.address });
+      })
+      .catch(console.error);
+  }, [isLoggedin, userData?.id, loadingUser, backendUrl]);
+
+  // Fetch pickup history
+  const fetchPickups = async () => {
+    if (!isLoggedin) return setPickupHistory([]);
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/api/pickups/my`, { withCredentials: true });
-      if (res.data?.success) {
-        setPickupHistory(res.data.pickups.slice(0, 3));
-      } else {
-        setPickupHistory([]);
-      }
+      const res = await axios.get(`${backendUrl}/api/pickups/my`, {
+        withCredentials: true,
+      });
+      setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
     } catch (err) {
-      console.error("Error fetching pickups:", err);
+      console.error(err);
       setPickupHistory([]);
     } finally {
       setLoading(false);
@@ -139,86 +185,29 @@ const PickupPage = () => {
   };
 
   useEffect(() => {
-    if (isLoggedin && userData?.id && !loadingUser) fetchMyPickups();
-    else setPickupHistory([]);
-  }, [isLoggedin, userData?.id, loadingUser]);
-
-  const calculatePointsAndDistributeWeight = (items, totalWeight) => {
-    const POINTS_PER_KG = {
-      Plastic: 167,
-      plastic: 167,
-      Paper: 53,
-      paper: 53,
-      Metal: 287,
-      metal: 287,
-      Glass: 23,
-      glass: 23,
-      "E-Waste": 20,
-      "e-waste": 20,
-      electronics: 2000,
-      Electronics: 2000,
-      cardboard: 53,
-      Cardboard: 53,
-      clothes: 117,
-      Clothes: 117,
-    };
-    
-    const totalItemWeight = items.reduce((sum, item) => sum + (item.weight || 0), 0);
-    const hasItemWeights = totalItemWeight > 0;
-    
-    let processedItems = [...items];
-    
-    if (!hasItemWeights && totalWeight > 0) {
-      const weightPerItem = totalWeight / items.length;
-      processedItems = items.map(item => ({
-        ...item,
-        weight: weightPerItem
-      }));
-    }
-    
-    const totalPoints = processedItems.reduce((acc, item) => {
-      const perKg = POINTS_PER_KG[item.type] || 0;
-      return acc + perKg * (item.weight || 0);
-    }, 0);
-    
-    return {
-      processedItems,
-      totalPoints: Math.round(totalPoints)
-    };
-  };
-
-  const calculateGains = (points) => {
-    return parseFloat((points * 0.15).toFixed(2));
-  };
+    if (isLoggedin) fetchPickups();
+  }, [isLoggedin]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmited(true);
-
-    if (!isLoggedin) {
-      return toast.error("Please log in to schedule a pickup.");
-    }
-
+    setSubmitting(true);
+    if (!isLoggedin) return toast.error("Please log in to schedule a pickup.");
     if (
       !state.scheduled_date ||
       !state.time_slot ||
       !state.address ||
-      (state.material.length === 0 && prefilledItems.length === 0) ||
+      !state.material.length ||
       !state.weight
     ) {
-      setSubmited(false);
+      setSubmitting(false);
       return;
     }
 
-    const itemsData = prefilledItems.length
-      ? prefilledItems.map((item) => ({
-          type: item.type,
-          quantity: item.quantity || 1,
-          weight: item.baseWeight || item.weight || 0,
-          points: item.points || 0,
-          estimatedValue: item.estimatedValue || 0,
-        }))
-      : state.material.map((type) => ({ type, quantity: 1 }));
+    const itemsData = state.material.map((type) => ({
+      type,
+      quantity: 1,
+      weight: parseFloat(state.weight) / state.material.length,
+    }));
 
     const pickupData = {
       address: state.address,
@@ -227,106 +216,69 @@ const PickupPage = () => {
       instructions: state.instructions,
       pickupTime: new Date(state.scheduled_date),
       time_slot: state.time_slot,
-      awardedPoints: calculatePointsAndDistributeWeight(itemsData, parseFloat(state.weight)).totalPoints,
-      gains: calculateGains(calculatePointsAndDistributeWeight(itemsData, parseFloat(state.weight)).totalPoints)
+      awardedPoints: state.awardedPoints,
+      gains: state.gains,
     };
 
     try {
-      if (editingPickupId) {
-        await axios.put(`${backendUrl}/api/pickups/${editingPickupId}`, pickupData, { withCredentials: true });
-        setEditingPickupId(null);
+      if (editingId) {
+        await axios.put(`${backendUrl}/api/pickups/${editingId}`, pickupData, {
+          withCredentials: true,
+        });
+        setEditingId(null);
       } else {
-        await axios.post(`${backendUrl}/api/pickups`, pickupData, { withCredentials: true });
+        await axios.post(`${backendUrl}/api/pickups`, pickupData, {
+          withCredentials: true,
+        });
       }
-
-      if (prefilledItems.length) {
-        const activities = prefilledItems.map((item) => ({
-          action: `Recycled ${item.quantity || 1}× ${item.type}`,
-          points: item.points || 0,
-          date: new Date(),
-        }));
-
-        try {
-          await axios.post(
-            `${backendUrl}/api/auth/add-activity`,
-            { activities },
-            { withCredentials: true }
-          );
-          if (typeof refreshUserData === "function") await refreshUserData();
-        } catch (err) {
-          console.warn("Failed to add activities after pickup:", err);
-        }
-      }
-
-      fetchMyPickups();
+      fetchPickups();
       dispatch({ type: "RESET_FORM" });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error("Error creating/updating pickup:", err);
+      console.error(err);
     } finally {
-      setSubmited(false);
+      setSubmitting(false);
     }
   };
 
-  const handleDeletePickup = (pickupId) => {
-    console.log("Removing pickup from list:", pickupId);
-    setPickupHistory((prev) => prev.filter((p) => p._id !== pickupId));
+  const handleDelete = (id) => {
+    setPickupHistory((prev) => prev.filter((p) => p._id !== id));
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
   };
 
-  const handleUpdatePickup = (pickupData) => {
-    setEditingPickupId(pickupData._id || pickupData.id || null);
-
-    dispatch({ type: "SET_ADDRESS", payload: pickupData.address || "" });
-    dispatch({ type: "SET_WEIGHT", payload: pickupData.weight || 0 });
-    dispatch({ type: "SET_TIME", payload: pickupData.time_slot || "" });
-
-    if (pickupData.pickupTime) {
-      const isoDate = new Date(pickupData.pickupTime).toISOString().split("T")[0];
-      dispatch({ type: "SET_DATE", payload: isoDate });
-    }
-
-    if (Array.isArray(pickupData.items)) {
-      pickupData.items.forEach((item) => {
-        const material = (item.type || item.category || item).toLowerCase();
-        dispatch({ type: "SET_MATERIAL", payload: material });
-      });
-    }
-
-    dispatch({ type: "SET_INSTRUCTIONS", payload: pickupData.instructions || "" });
+  const handleUpdate = (pickup) => {
+    setEditingId(pickup._id);
+    dispatch({ type: "SET_ADDRESS", payload: pickup.address || "" });
+    dispatch({ type: "SET_WEIGHT", payload: pickup.weight || 0 });
+    dispatch({
+      type: "SET_DATE",
+      payload: pickup.pickupTime
+        ? new Date(pickup.pickupTime).toISOString().split("T")[0]
+        : "",
+    });
+    dispatch({ type: "SET_TIME", payload: pickup.time_slot || "" });
+    dispatch({ type: "SET_INSTRUCTIONS", payload: pickup.instructions || "" });
+    dispatch({ type: "RESET_FORM" });
+    if (Array.isArray(pickup.items))
+      pickup.items.forEach((item) =>
+        dispatch({ type: "SET_MATERIAL", payload: item.type })
+      );
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   if (loadingUser) return <LoadingSpinner />;
 
   return (
-    <section id="pickup" className="mb-10 min-h-screen bg-gray-100 ">
+    <section className="mb-10 min-h-screen bg-gray-100">
       <div className="flex flex-col gap-2 mt-10 md:flex-row">
+        {/* Pickup Form */}
         <div className="bg-white border-none rounded-2xl text-gray-500 p-4 flex-1">
           <div className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="80"
-              height="80"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#000000"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-truck-icon"
-            >
-              <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-              <path d="M15 18H9" />
-              <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14" />
-              <circle cx="17" cy="18" r="2" />
-              <circle cx="7" cy="18" r="2" />
-            </svg>
-
+            <Truck className="w-20 h-20" />
             <div className="ml-2">
-              <h2 className="text-black text-start leading-none">Schedule Pickup</h2>
+              <h2 className="text-black leading-none">Schedule Pickup</h2>
               <p>Convenient pickup service for your recyclable materials</p>
             </div>
           </div>
@@ -334,46 +286,47 @@ const PickupPage = () => {
           {isLoggedin && userData ? (
             <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
               <p className="text-xs md:text-sm text-blue-700">
-                <span className="font-medium">Scheduling as:</span> 
+                <span className="font-medium">Scheduling as:</span>{" "}
                 {userData.name} ({userData.email})
               </p>
             </div>
           ) : (
             <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <p className="text-sm text-yellow-700">
-                <span className="font-medium">Note:</span> You cannot schedule pickups without logging in 
+                <span className="font-medium">Note:</span> You cannot schedule
+                pickups without logging in
               </p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-4 shadow-xl px-5 rounded-[20px] py-5 w-full">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-5 mt-4 shadow-xl px-5 rounded-[20px] py-5 w-full"
+          >
+            {/* Date & Time */}
             <div className="flex gap-5 flex-col md:flex-row">
-              <div className="flex flex-col items-start gap-2 flex-1">
-                <label htmlFor="date" className="text-black">
-                  Preferred Date
-                </label>
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="text-black">Preferred Date</label>
                 <input
                   type="date"
-                  id="date"
                   required
-                  min={new Date().toISOString().split('T')[0]}
-                  value={state.scheduled_date || ""}
-                  onChange={(e) => dispatch({ type: "SET_DATE", payload: e.target.value })}
-                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border focus:border-2 focus:border-solid focus:border-black transtion duration-100 w-full"
+                  min={new Date().toISOString().split("T")[0]}
+                  value={state.scheduled_date}
+                  onChange={(e) =>
+                    dispatch({ type: "SET_DATE", payload: e.target.value })
+                  }
+                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border-2 focus:border-black w-full"
                 />
               </div>
-
-              <div className="flex flex-col items-start gap-2 flex-1">
-                <label htmlFor="time" className="text-black">
-                  Time Slot
-                </label>
+              <div className="flex flex-col gap-2 flex-1">
+                <label className="text-black">Time Slot</label>
                 <select
-                  id="time"
-                  name="time"
                   required
-                  value={state.time_slot || ""}
-                  onChange={(e) => dispatch({ type: "SET_TIME", payload: e.target.value })}
-                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border-2 focus:border-solid focus:border-black transtion duration-100 w-full"
+                  value={state.time_slot}
+                  onChange={(e) =>
+                    dispatch({ type: "SET_TIME", payload: e.target.value })
+                  }
+                  className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 focus:outline-none focus:border-2 focus:border-black w-full"
                 >
                   <option value="" disabled>
                     Select time slot
@@ -385,43 +338,50 @@ const PickupPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-start gap-2">
-              <label htmlFor="address" className="text-black">
-                Pickup Address
-              </label>
+            {/* Address */}
+            <div className="flex flex-col gap-2">
+              <label className="text-black">Pickup Address</label>
               <input
                 type="text"
-                id="address"
-                placeholder="Enter your pickup address"
                 required
                 value={state.address}
-                onChange={(e) => dispatch({ type: "SET_ADDRESS", payload: e.target.value })}
-                className="border-2 border-transparent rounded-xl p-2 bg-gray-100 focus:border-2 focus:border-solid focus:border-black transtion duration-100 text-gray-500 w-full focus:outline-none"
+                onChange={(e) =>
+                  dispatch({ type: "SET_ADDRESS", payload: e.target.value })
+                }
+                className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 w-full focus:outline-none focus:border-2 focus:border-black"
               />
-              {isLoggedin && userData?.address && state.address !== userData.address && (
-                <p className="text-xs text-gray-500">
-                   Tip: You can use your saved address from profile or enter a different one
-                </p>
-              )}
             </div>
 
-            <div className="flex flex-col items-start gap-2">
-              <label htmlFor="material" className="text-black">
-                Material for pickup
-              </label>
-
-              <div className="grid grid-cols-2 gap-1 md:m-1 md:gap-3">
-                {["plastic", "glass", "cardboard", "clothes", "paper", "metal", "electronics"].map((item) => (
+            {/* Materials */}
+            <div className="flex flex-col gap-1">
+              <label className="text-black">Material for pickup</label>
+              <p className="text-xs mx-1">You can Only pick on material.</p>
+              <div className="grid capitalize grid-cols-2 gap-1 md:m-1 md:gap-3">
+                {[
+                  "plastic",
+                  "glass",
+                  "cardboard",
+                  "clothes",
+                  "paper",
+                  "metal",
+                  "electronics",
+                  "wood",
+                ].map((item) => (
                   <div key={item}>
                     <input
                       type="checkbox"
                       id={item}
                       value={item}
-                      checked={state.material.includes(item)}
-                      onChange={(e) => dispatch({ type: "SET_MATERIAL", payload: e.target.value })}
-                      className="accent-gray-800"
+                      checked={state.material.includes(item)} // only one can be selected
+                      onChange={() =>
+                        dispatch({ type: "SET_MATERIAL", payload: item })
+                      } // replace previous selection
+                      className="accent-gray-800 capitalize"
                     />
-                    <label htmlFor={item} className="text-black ml-1 capitalize">
+                    <label
+                      htmlFor={item}
+                      className="text-black ml-1 capitalize"
+                    >
                       {item}
                     </label>
                   </div>
@@ -429,79 +389,103 @@ const PickupPage = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-start gap-2">
-              <label htmlFor="weight" className="text-black">
-                Estimated Weight (kg)
-              </label>
+            {/* Weight */}
+            <div className="flex flex-col gap-2">
+              <label className="text-black">Estimated Weight (kg)</label>
               <input
                 type="number"
-                id="weight"
-                placeholder="e.g. 5"
-                min={1}
+                min={0.1} // now the minimum is 0.1
+                step="0.1" // allows decimal increments like 0.1
                 required
-                value={state.weight}
-                onChange={(e) => dispatch({ type: "SET_WEIGHT", payload: e.target.value })}
-                className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 w-full focus:outline-none focus:border-2 focus:border-solid focus:border-black transtion duration-100"
+                value={state.weight} // will display prefilled weight from scanner
+                onChange={(e) =>
+                  dispatch({ type: "SET_WEIGHT", payload: e.target.value })
+                }
+                className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 w-full focus:outline-none focus:border-2 focus:border-black"
               />
             </div>
 
-            <div className="flex flex-col items-start gap-2">
-              <label htmlFor="instructions" className="text-black">
-                Special Instructions
-              </label>
+            {/* Instructions */}
+            <div className="flex flex-col gap-2">
+              <label className="text-black">Detected Items</label>
               <textarea
-                id="instructions"
-                placeholder="Any special instructions for pickup"
                 value={state.instructions}
-                onChange={(e) => dispatch({ type: "SET_INSTRUCTIONS", payload: e.target.value })}
-                className="border-2 border-black rounded-2xl p-2 w-full h-16 bg-transparent focus:border-2 focus:border-solid focus:border-black transtion duration-100"
-              ></textarea>
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_INSTRUCTIONS",
+                    payload: e.target.value,
+                  })
+                }
+                className="border-2 border-black rounded-2xl p-2 w-full h-16 bg-transparent focus:border-2 focus:border-black"
+                placeholder="Detected items will appear here — this field cannot be edited."
+                readOnly
+              />
             </div>
 
+            {/* Points & Earnings */}
+            {state.awardedPoints > 0 && (
+              <div className="flex justify-between bg-green-50 p-3 rounded-lg border border-green-200">
+                <span className="font-medium">Total Points:</span>
+                <span>{state.awardedPoints} pts</span>
+                <span className="font-medium ml-4">Total Earnings:</span>
+                <span>{state.gains.toFixed(2)} EGP</span>
+              </div>
+            )}
+
+            {/* Submit */}
             <button
               type="submit"
-              disabled={submited}
+              disabled={submitting}
               className={`w-[95%] mt-2 flex items-center justify-center gap-2 rounded-full p-3 transition-all cursor-pointer ${
-                submited ? "bg-green-600 text-white" : "bg-green-700 text-white hover:bg-green-800"
+                submitting
+                  ? "bg-green-600 text-white"
+                  : "bg-green-700 text-white hover:bg-green-800"
               }`}
             >
               <Truck className="mr-1" />
-              {submited && userData ? (editingPickupId ? "Updating..." : "Scheduling...") : editingPickupId ? "Update" : "Schedule Pickup"}
+              {submitting
+                ? editingId
+                  ? "Updating..."
+                  : "Scheduling..."
+                : editingId
+                ? "Update"
+                : "Schedule Pickup"}
             </button>
-          </form>
 
-          {success && (
-            <div className="mt-4 p-4 bg-[rgba(0,0,0,0.2)] border border-green-200 rounded-lg text-green-800">
-              Pickup scheduled successfully! wait for confirmation.
-            </div>
-          )}
+            {success && (
+              <div className="mt-4 p-4 bg-[rgba(0,0,0,0.2)] border border-green-200 rounded-lg text-green-800">
+                Pickup scheduled successfully! wait for confirmation.
+              </div>
+            )}
+          </form>
         </div>
 
+        {/* Pickup History */}
         <div className="flex flex-col gap-5 w-full md:w-[35%]">
           <div className="bg-white rounded-2xl p-4 shadow-xl px-5">
             <div className="text-start mb-4">
               <h3 className="text-black font-semibold">My Pickup History</h3>
-              {isLoggedin && userData ? (
-                <p className="text-gray-500">Your recent pickup requests and their status</p>
+              {isLoggedin ? (
+                <p className="text-gray-500">
+                  Your recent pickup requests and their status
+                </p>
               ) : (
-                <p className="text-gray-500">Please log in to view your pickup history</p>
+                <p className="text-gray-500">
+                  Please log in to view your pickup history
+                </p>
               )}
             </div>
 
             <div className="space-y-3">
               {loadingUser ? (
                 <div className="text-center py-4">
-                  <p className="text-gray-500">Loading user data...</p>
+                  <LoadingSpinner />
                 </div>
               ) : !isLoggedin ? (
                 <div className="text-center py-8">
-                  <div className="mb-4">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 font-medium">Please log in to view your pickup history</p>
-                  <p className="text-sm text-gray-400 mt-2">You need to be logged in to schedule and track pickups</p>
+                  <p className="text-gray-500 font-medium">
+                    Please log in to view your pickup history
+                  </p>
                 </div>
               ) : loading ? (
                 <div className="text-center py-4">
@@ -511,40 +495,45 @@ const PickupPage = () => {
                 pickupHistory.map((pickup) => (
                   <ReqHistoryCard
                     key={pickup._id}
-                    date={new Date(pickup.createdAt).toLocaleDateString("en-EG", { timeZone: "Africa/Cairo" })}
-                    material={Array.isArray(pickup.items) ? pickup.items.map((i) => i.type || i).join(", ") : pickup.items}
+                    date={new Date(pickup.createdAt).toLocaleDateString(
+                      "en-EG"
+                    )}
+                    material={pickup.items.map((i) => i.type).join(", ")}
                     items={pickup.items}
                     time={pickup.time_slot}
                     status={pickup.status}
                     address={pickup.address}
                     weight={pickup.weight}
-                    scheduledDate={new Date(pickup.pickupTime).toLocaleDateString()}
+                    scheduledDate={new Date(
+                      pickup.pickupTime
+                    ).toLocaleDateString("en-EG")}
                     requestId={pickup._id}
-                    onDelete={handleDeletePickup}
-                    onUpdate={handleUpdatePickup}
-                    refreshHistory={fetchMyPickups}
-                    backendUrl={backendUrl}
-                    agentName={pickup.deliveryAgentId?.name || ""}
+                    onDelete={handleDelete}
+                    onUpdate={handleUpdate}
                     points={pickup.awardedPoints}
                     gains={pickup.gains}
+                    instructions={pickup.instructions} // <-- add this
                   />
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <div className="mb-4">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-8V4a1 1 0 00-1-1H7a1 1 0 00-1 1v1m8 0V4.5" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 font-medium">No pickup history found</p>
-                  <p className="text-sm text-gray-400 mt-2">Schedule your first pickup above to get started!</p>
+                  <p className="text-gray-500 font-medium">
+                    No pickup history found
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Schedule your first pickup above to get started!
+                  </p>
                 </div>
               )}
             </div>
 
             {isLoggedin && pickupHistory.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <button onClick={fetchMyPickups} className="text-green-700 hover:text-green-800 text-sm font-medium transition-colors cursor-pointer">
+              <div className="flex justify-around mt-4 pt-4 border-t border-gray-200">
+                <p className="text-xs">To see the rest Pickups ,Check your profile</p>
+                <button
+                  onClick={fetchPickups}
+                  className="text-green-700 hover:text-green-800 text-sm font-medium transition-colors cursor-pointer"
+                >
                   Refresh History
                 </button>
               </div>

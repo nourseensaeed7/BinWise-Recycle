@@ -27,27 +27,37 @@ const RecycleScanner = () => {
         setLoading(true);
 
         // Fetch user profile
-        const profileRes = await axios.get("http://localhost:5000/api/auth/profile", {
-          withCredentials: true,
-        });
+        const profileRes = await axios.get(
+          "http://localhost:5000/api/auth/profile",
+          {
+            withCredentials: true,
+          }
+        );
         const user = profileRes.data.userData;
         setDailyGoal(user.dailyGoal || 5);
 
         // Fetch user's pickups
-        const pickupsRes = await axios.get("http://localhost:5000/api/pickups/my", {
-          withCredentials: true,
-        });
+        const pickupsRes = await axios.get(
+          "http://localhost:5000/api/pickups/my",
+          {
+            withCredentials: true,
+          }
+        );
         const pickups = pickupsRes.data.pickups || [];
         const todayStr = new Date().toDateString();
 
         // Count completed pickups today
         const completedToday = pickups.filter(
-          (p) => p.status === "completed" && new Date(p.createdAt).toDateString() === todayStr
+          (p) =>
+            p.status === "completed" &&
+            new Date(p.createdAt).toDateString() === todayStr
         ).length;
 
         // Count assigned pickups today
         const assignedToday = pickups.filter(
-          (p) => p.status === "assigned" && new Date(p.createdAt).toDateString() === todayStr
+          (p) =>
+            p.status === "assigned" &&
+            new Date(p.createdAt).toDateString() === todayStr
         ).length;
 
         setCompleted(completedToday);
@@ -73,7 +83,9 @@ const RecycleScanner = () => {
       <NavBar />
       <div className="p-6">
         <h1 className="text-3xl font-bold">Smart Recycling Center</h1>
-        <p className="text-gray-600">AI-powered recognition to identify recyclable materials</p>
+        <p className="text-gray-600">
+          AI-powered recognition to identify recyclable materials
+        </p>
 
         <div className="flex flex-col gap-10 md:flex-row lg:flex-row mt-6">
           <RecycleCamera />
@@ -111,31 +123,46 @@ const RecycleScanner = () => {
             </div>
 
             {/* Progress: 5 stars max */}
-            <div className="border rounded-xl p-3 bg-white border-gray-300">
+            <div className="border rounded-xl p-3 bg-white border-gray-300 overflow-hidden">
               <div className="flex gap-1 items-center ">
                 <GiProgression className="text-xl mb-3 text-yellow-400" />
                 <h2 className="text-lg font-semibold mb-3">Today's Progress</h2>
               </div>
 
-              <div className="flex gap-1 place-self-center-safe mb-4 ">
-                {/* Completed tasks = green */}
+              <div className="flex justify-center gap-2  items-center mb-4 w-full px-4">
+                {/* Completed */}
                 {Array.from({ length: Math.min(completed, 5) }, (_, i) => (
-                  <span key={i} className="text-6xl text-green-500">★</span>
+                  <span
+                    key={i}
+                    className="text-green-500 text-5xl  leading-none"
+                  >
+                    ★
+                  </span>
                 ))}
 
-                {/* Assigned tasks = yellow, fill remaining stars up to 5 */}
+                {/* Assigned */}
                 {Array.from(
                   { length: Math.min(assigned, 5 - completed) },
                   (_, i) => (
-                    <span key={i + completed} className="text-6xl text-yellow-400">★</span>
+                    <span
+                      key={i + completed}
+                      className="text-yellow-400 text-5xl leading-none"
+                    >
+                      ★
+                    </span>
                   )
                 )}
 
-                {/* Pending tasks = gray, fill remaining stars up to 5 */}
+                {/* Pending */}
                 {Array.from(
                   { length: Math.max(5 - completed - assigned, 0) },
                   (_, i) => (
-                    <span key={i + completed + assigned} className="text-6xl text-gray-300">★</span>
+                    <span
+                      key={i + completed + assigned}
+                      className="text-gray-300 text-5xl leading-none"
+                    >
+                      ★
+                    </span>
                   )
                 )}
               </div>

@@ -91,7 +91,7 @@ export function AboutPage() {
 
 We provide a platform that helps individuals and communities dispose of waste properly while encouraging eco-friendly habits. By separating recyclable materials and raising awareness, we aim to reduce pollution, save natural resources, and build a cleaner future.
 
-Together, we can turn waste into a valuable resource. With Bin Wise, every action counts toward protecting our environment for the next generations. 🌍
+Together, we can turn waste into a valuable resource. With Bin Wise, every action counts toward protecting our environment for the next generations.
         </p>
       </section>
 
@@ -232,7 +232,7 @@ Together, we can turn waste into a valuable resource. With Bin Wise, every actio
               </p>
                 <button 
                   className="bg-green-700 hover:bg-green-900 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition cursor-pointer duration-300"
-                  onClick={() => window.location.href = '/pickup'}
+                  onClick={() => window.location.href = '/recycle-scanner'}
                 >
                   Start Recycling Now
                 </button>
