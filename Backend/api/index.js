@@ -23,7 +23,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://bin-wise-ntqx2dkq4-nourseens-projects.vercel.app",
+  "https://bin-wise-recycle.vercel.app", // ✅ Your PRODUCTION URL
 ];
 
 app.use(
@@ -50,8 +50,9 @@ app.use("/progress", progressRoutes);
 
 // Root route - place AFTER other routes
 app.get("/", (req, res) => {
-  res.json({ message: "Backend server is running" });
+  res.json({ message: "Backend server is running ✅" });
 });
+
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
