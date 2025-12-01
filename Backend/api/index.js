@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import connectDB from "../config/mongodb.js";
 
-// Routes
+// Routes - import ALL at once to avoid circular dependencies
 import authRouter from "../routes/authRoutes.js";
 import postsRouter from "../routes/postsRoutes.js";
 import usersRouter from "../routes/userRoutes.js";
@@ -23,8 +23,6 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:5174",
   "https://bin-wise-ntqx2dkq4-nourseens-projects.vercel.app",
 ];
 
@@ -51,7 +49,7 @@ app.use("/api/centers", centersRoutes);
 app.use("/api/progress", progressRoutes);
 
 app.get("/", (req, res) => {
-  res.json({ message: "Server is running..." });
+  res.json({ message: "Backend server is running" });
 });
 
 app.get("/api", (req, res) => {
@@ -61,7 +59,7 @@ app.get("/api", (req, res) => {
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({ error: err.message || "Internal server error" });
 });
 
 export default app;

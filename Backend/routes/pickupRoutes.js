@@ -3,8 +3,6 @@ import Pickup from "../models/pickupModel.js";
 import userModel from "../models/userModel.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import roleAuth from "../middleware/roleAuth.js";
-import { io } from "../Server.js";
-
 
 const router = express.Router();
 
