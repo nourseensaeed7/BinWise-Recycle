@@ -5,3 +5,4 @@ node_modules/
 >>>>>>> c967b623b1b75a2da6c62d7112b2f30b3e9cfda4
 Backend/.env
 Frontend/.env
+.vercel
