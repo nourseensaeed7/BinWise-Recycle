@@ -3,6 +3,7 @@ import { AppContent } from "./AppContext";
 import axios from "axios";
 
 export const AppContextProvider = ({ children }) => {
+  // ✅ VITE_BACKEND_URL should already include /api
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   // Configure axios to always send cookies
@@ -10,22 +11,20 @@ export const AppContextProvider = ({ children }) => {
 
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true); // optional: handle loading state
+  const [loadingUser, setLoadingUser] = useState(true);
 
   // ✅ Fetch user data from backend
   const getUserData = async () => {
     try {
-      // Ensure axios is configured to send cookies
-      axios.defaults.withCredentials = true;
-      //get because it will return promise which is async
-      const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`, {
+      // ✅ Don't add /api again - it's already in backendUrl
+      const { data } = await axios.get(`${backendUrl}/auth/is-auth`, {
         withCredentials: true,
       });
 
       if (data.success && data.userData) {
         setUserData(data.userData);
         setIsLoggedin(true);
-        return data.userData; // Return user data for redirection logic
+        return data.userData;
       } else {
         setUserData(null);
         setIsLoggedin(false);
@@ -40,28 +39,26 @@ export const AppContextProvider = ({ children }) => {
       setLoadingUser(false);
     }
   };
-  // 🔄 Refresh user data after updates (like activities, profile update, etc.)
-const refreshUserData = async () => {
-  try {
-    const { data } = await axios.get(`${backendUrl}/api/auth/profile`, {
-      withCredentials: true,
-    });
 
-    if (data.success && data.user) {
-      setUserData(data.user);
+  // 🔄 Refresh user data after updates
+  const refreshUserData = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/auth/profile`, {
+        withCredentials: true,
+      });
+
+      if (data.success && data.user) {
+        setUserData(data.user);
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
     }
-  } catch (error) {
-    console.error("Failed to refresh user data:", error);
-  }
-};
-
+  };
 
   // ✅ Check authentication state on startup
   const getAuthState = async () => {
     try {
-      // Ensure axios is configured to send cookies
-      axios.defaults.withCredentials = true;
-      const { data } = await axios.get(`${backendUrl}/api/auth/is-auth`, {
+      const { data } = await axios.get(`${backendUrl}/auth/is-auth`, {
         withCredentials: true,
       });
 
@@ -80,7 +77,7 @@ const refreshUserData = async () => {
       setIsLoggedin(false);
       setUserData(null);
     } finally {
-      setLoadingUser(false); // Always set loading to false
+      setLoadingUser(false);
     }
   };
 
