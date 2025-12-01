@@ -25,9 +25,9 @@
   "env": {
     "PORT": "5000",
     "MONGODB_URL": "MONGODB_URL",
-    "JWT_SECRET": "@secret_key",
-    "SMTP_USER": "@smtp_user",
-    "SMTP_PASSWORD": "@smtp_password",
-    "SENDER_EMAIL": "@sender_email"
+    "JWT_SECRET": "JWT_SECRET",
+    "SMTP_USER": "SMTP_USER",
+    "SMTP_PASSWORD": "SMTP_PASSWORD",
+    "SENDER_EMAIL": "SENDER_EMAIL"
   }
 }
