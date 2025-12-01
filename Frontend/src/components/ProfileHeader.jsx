@@ -56,8 +56,8 @@ const ProfileHeader = () => {
             address: res.data.userData.address || "Enter your address",
             // Add server URL to profile image if it exists
             profileImage: res.data.userData.profileImage 
-              ? `http://localhost:5000${res.data.userData.profileImage}`
-              : null,
+            ? `${import.meta.env.VITE_BACKEND_URL}${res.data.userData.profileImage}`
+            : null,
             level: res.data.userData.level || "Beginner",
             daysRecycled: uniqueDays.size,
             points: totalPointsFromPickups,
@@ -112,8 +112,8 @@ const ProfileHeader = () => {
           ...prev,
           address: res.data.userData.address,
           profileImage: res.data.userData.profileImage 
-            ? `http://localhost:5000${res.data.userData.profileImage}`
-            : prev.profileImage,
+          ? `${import.meta.env.VITE_BACKEND_URL}${res.data.userData.profileImage}`
+           : prev.profileImage,
         }));
         
         setIsOpen(false);

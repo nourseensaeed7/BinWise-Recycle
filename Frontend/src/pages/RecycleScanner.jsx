@@ -28,7 +28,7 @@ const RecycleScanner = () => {
 
         // Fetch user profile
         const profileRes = await axios.get(
-          "http://localhost:5000/api/auth/profile",
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`,
           {
             withCredentials: true,
           }
@@ -38,11 +38,12 @@ const RecycleScanner = () => {
 
         // Fetch user's pickups
         const pickupsRes = await axios.get(
-          "http://localhost:5000/api/pickups/my",
+          `${import.meta.env.VITE_BACKEND_URL}/api/pickups/my`,
           {
-            withCredentials: true,
+            withCredentials: true, // keep this if your backend uses cookies/auth
           }
         );
+        
         const pickups = pickupsRes.data.pickups || [];
         const todayStr = new Date().toDateString();
 

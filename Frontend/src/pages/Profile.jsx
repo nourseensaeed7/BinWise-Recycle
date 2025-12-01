@@ -13,7 +13,8 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/auth/profile", {
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`, {
           withCredentials: true,
         });
         setUser(res.data.userData || res.data.user); 
