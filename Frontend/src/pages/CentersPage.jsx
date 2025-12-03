@@ -18,7 +18,7 @@ const CentersPage = () => {
       console.log(" Fetching centers from API...");
       
       const queryParam = filter !== "all" ? `?status=${filter}` : "";
-      const response = await api.get(`/centers${queryParam}`);
+      const response = await api.get(`/api/centers${queryParam}`);
       
       console.log("Centers fetched:", response.data);
       
