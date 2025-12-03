@@ -13,13 +13,15 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`, {
+        // Remove the duplicate baseURL
+        const res = await api.get("/api/auth/profile", {
           withCredentials: true,
         });
+        
+        console.log("✅ Profile data:", res.data);
         setUser(res.data.userData || res.data.user); 
       } catch (err) {
-        console.error("Error fetching profile:", err);
+        console.error("❌ Error fetching profile:", err);
       } finally {
         setLoading(false);
       }

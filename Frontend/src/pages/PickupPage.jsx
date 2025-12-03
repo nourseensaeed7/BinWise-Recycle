@@ -156,33 +156,39 @@ const PickupPage = () => {
   }, [prefilledItems]);
 
   // Load user address
-  useEffect(() => {
-    if (!isLoggedin || !userData?.id || loadingUser) return;
-    api
-      .get(`${backendUrl}/api/auth/profile`, { withCredentials: true })
-      .then((res) => {
-        if (res.data.success && res.data.userData.address)
-          dispatch({ type: "SET_ADDRESS", payload: res.data.userData.address });
-      })
-      .catch(console.error);
-  }, [isLoggedin, userData?.id, loadingUser, backendUrl]);
+// Load user address
+useEffect(() => {
+  if (!isLoggedin || !userData?.id || loadingUser) return;
+  
+  api.get("/api/auth/profile", { withCredentials: true })
+    .then((res) => {
+      console.log("✅ User profile loaded:", res.data);
+      if (res.data.success && res.data.userData.address) {
+        dispatch({ type: "SET_ADDRESS", payload: res.data.userData.address });
+      }
+    })
+    .catch((err) => {
+      console.error("❌ Error loading profile:", err);
+    });
+}, [isLoggedin, userData?.id, loadingUser]);
 
-  // Fetch pickup history
-  const fetchPickups = async () => {
-    if (!isLoggedin) return setPickupHistory([]);
-    setLoading(true);
-    try {
-      const res = await api.get(`${backendUrl}/api/pickups/my`, {
-        withCredentials: true,
-      });
-      setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
-    } catch (err) {
-      console.error(err);
-      setPickupHistory([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+// Fetch pickup history
+const fetchPickups = async () => {
+  if (!isLoggedin) return setPickupHistory([]);
+  setLoading(true);
+  try {
+    const res = await api.get("/api/pickups/my", {
+      withCredentials: true,
+    });
+    console.log("✅ Pickups loaded:", res.data);
+    setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
+  } catch (err) {
+    console.error("❌ Error fetching pickups:", err);
+    setPickupHistory([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (isLoggedin) fetchPickups();
