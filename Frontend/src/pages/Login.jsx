@@ -38,7 +38,7 @@ const Login = () => {
         });
         data = res.data;
       } else {
-        const res = await api.post(`${backendUrl}/auth/login`, {
+        const res = await api.post(`${backendUrl}/api/auth/login`, {
           email,
           password,
         });
