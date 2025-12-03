@@ -20,6 +20,7 @@ export const AppContextProvider = ({ children }) => {
     (error) => Promise.reject(error)
   );
 
+
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
@@ -59,31 +60,37 @@ export const AppContextProvider = ({ children }) => {
     }
   };
 
-  // Check auth state on startup
-  const getAuthState = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("No token in storage");
+// Inside AppContextProvider
+const getAuthState = async () => {
+  try {
+    const token = localStorage.getItem("token"); // ✅ get token from storage
+    if (!token) throw new Error("No token in storage");
 
-      const { data } = await axios.get(`${backendUrl}/auth/is-auth`);
-      if (data.success && data.userData) {
-        setIsLoggedin(true);
-        setUserData(data.userData);
-      } else {
-        setIsLoggedin(false);
-        setUserData(null);
-      }
-    } catch (error) {
-      console.warn(
-        "Auth check failed:",
-        error.response?.data?.message || error.message
-      );
+    const { data } = await axios.get(`${backendUrl}/auth/is-auth`, {
+      headers: { Authorization: `Bearer ${token}` }, // ✅ send token in header
+    });
+
+    if (data.success && data.userData) {
+      setIsLoggedin(true);
+      setUserData(data.userData);
+    } else {
       setIsLoggedin(false);
       setUserData(null);
-    } finally {
-      setLoadingUser(false);
     }
-  };
+  } catch (error) {
+    console.warn("Auth check failed:", error.response?.data?.message || error.message);
+    setIsLoggedin(false);
+    setUserData(null);
+  } finally {
+    setLoadingUser(false);
+  }
+};
+
+// Run once on mount
+useEffect(() => {
+  getAuthState();
+}, []);
+
 
   // Logout helper
   const logout = () => {
@@ -92,9 +99,6 @@ export const AppContextProvider = ({ children }) => {
     setUserData(null);
   };
 
-  useEffect(() => {
-    getAuthState();
-  }, []);
 
   const value = {
     backendUrl,
