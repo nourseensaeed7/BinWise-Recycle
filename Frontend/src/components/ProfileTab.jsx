@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react"; // ✅ ADD useContext here
 import api from "../api/axios";
 import { CiDiscount1 } from "react-icons/ci";
 import { FaHeart, FaFire } from "react-icons/fa";
 import { FaGifts, FaMedal } from "react-icons/fa6";
 import { PiPlantFill } from "react-icons/pi";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { AppContent } from "../context/AppContext";
 
 const ProfileTabs = () => {
   const [activeTab, setActiveTab] = useState("activity");
@@ -12,64 +13,110 @@ const ProfileTabs = () => {
   const [user, setUser] = useState(null);
   const [daysRecycled, setDaysRecycled] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  // ✅ Get socket from context
+  const { socket } = useContext(AppContent);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        // Fetch profile data
-        const profileRes = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/profile`,{
-          withCredentials: true,
-        });
-        if (profileRes.data.success) setUser(profileRes.data.userData);
-
-        // Fetch pickups data
-        const pickupsRes = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/pickups/my`, {
-          withCredentials: true,
-        });
-
-        if (pickupsRes.data.success) {
-          const pickups = pickupsRes.data.pickups;
-
-          // 🔥 REAL ACTIVITY MAPPING (with correct gains from backend)
-          const mappedActivities = pickups.map((pickup) => {
-            const status = pickup.status.charAt(0).toUpperCase() + pickup.status.slice(1);
-            const points = pickup.awardedPoints || 0;
-            const isCompleted = pickup.status === "completed";
-
-            //  Real gains from backend (fallback to calculation)
-            const totalMoney = pickup.gains || (points * 0.15);
-
-            return {
-              action: `Pickup ${status}`,
-              date: pickup.createdAt,
-              points: points,
-              gains: totalMoney,
-              isCompleted: isCompleted,
-              status: pickup.status,
-              items: pickup.items || [],
-            };
-          });
-
-          setActivities(mappedActivities);
-
-          // Calculate unique recycling days (completed only)
-          const completedPickups = pickups.filter((p) => p.status === "completed");
-          const uniqueDays = new Set(
-            completedPickups.map((p) => new Date(p.createdAt).toDateString())
-          );
-          setDaysRecycled(uniqueDays.size);
-        }
-      } catch (err) {
-        console.error("Error fetching data:", err);
-      } finally {
-        setLoading(false);
+  // ✅ Move fetchUserData outside useEffect so it can be reused
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch profile data with activities
+      const profileRes = await api.get("/api/auth/profile", {
+        withCredentials: true,
+      });
+      
+      console.log("📋 Profile response:", profileRes.data);
+      
+      if (profileRes.data.success) {
+        const userData = profileRes.data.user || profileRes.data.userData;
+        setUser(userData);
+        
+        // Get activities directly from user profile
+        const userActivities = userData.activity || [];
+        console.log("📊 User activities:", userActivities.length);
+        
+        setActivities(userActivities);
+        setDaysRecycled(userData.daysRecycled || 0);
       }
-    };
+    } catch (err) {
+      console.error("❌ Error fetching profile data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // Initial fetch on component mount
+  useEffect(() => {
     fetchUserData();
   }, []);
+  
+  // Setup socket listeners
+  useEffect(() => {
+    if (!socket) {
+      console.log("⚠️ Socket not available yet");
+      return;
+    }
+  
+    console.log("📡 Setting up socket listeners in ProfileTab");
+  
+    // Listen for new pickup creation
+    const handlePickupCreated = (data) => {
+      console.log("🆕 Pickup created event received:", data);
+      fetchUserData(); // Refresh profile to get new activity
+    };
+  
+    // Listen for pickup completion
+    const handlePickupCompleted = (data) => {
+      console.log("✅ Pickup completed event received:", data);
+      fetchUserData(); // Refresh profile to get updated points and activities
+    };
+  
+    // Listen for points awarded
+    const handlePointsAwarded = (data) => {
+      console.log("💰 Points awarded event received:", data);
+      
+      // Update user points immediately
+      setUser((prev) => ({
+        ...prev,
+        points: data.totalPoints,
+        gains: data.totalGains,
+      }));
+      
+      // Refresh full profile
+      fetchUserData();
+    };
+  
+    // Listen for pickup updates
+    const handlePickupUpdated = (data) => {
+      console.log("✏️ Pickup updated event received:", data);
+      fetchUserData();
+    };
+  
+    // Listen for pickup deletion
+    const handlePickupDeleted = (data) => {
+      console.log("🗑️ Pickup deleted event received:", data);
+      fetchUserData();
+    };
+  
+    // Register all event listeners
+    socket.on("pickup-created", handlePickupCreated);
+    socket.on("pickup-completed", handlePickupCompleted);
+    socket.on("points-awarded", handlePointsAwarded);
+    socket.on("pickup-updated", handlePickupUpdated);
+    socket.on("pickup-deleted", handlePickupDeleted);
+  
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off("pickup-created", handlePickupCreated);
+      socket.off("pickup-completed", handlePickupCompleted);
+      socket.off("points-awarded", handlePointsAwarded);
+      socket.off("pickup-updated", handlePickupUpdated);
+      socket.off("pickup-deleted", handlePickupDeleted);
+      console.log("🧹 Socket listeners cleaned up in ProfileTab");
+    };
+  }, [socket]);
 
   const rewards = [
     {

@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useContext } from "react"; // ✅ ADD useContext
 import NavBar from "../components/NavBar.jsx";
+import { AppContent } from "../context/AppContext";
 
 const API_URL = `${import.meta.env.VITE_BACKEND_URL}`;
 
@@ -10,6 +11,9 @@ export default function AdminDashboard() {
   const [activePickup, setActivePickup] = useState(null);
   const [selectedDate, setSelectedDate] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  // ✅ Get socket from context
+  const { socket } = useContext(AppContent);
 
   useEffect(() => {
     const loadData = async () => {
@@ -18,6 +22,63 @@ export default function AdminDashboard() {
     };
     loadData();
   }, []);
+
+  // ✅ Socket listeners
+  useEffect(() => {
+    if (!socket) {
+      console.log("⚠️ Socket not available in AdminDashboard");
+      return;
+    }
+
+    console.log("📡 Setting up socket listeners in AdminDashboard");
+
+    // Listen for new pickups
+    const handleNewPickup = (data) => {
+      console.log("🆕 New pickup received in admin:", data);
+      fetchPickups(); // Refresh the list
+    };
+
+    // Listen for pickup updates
+    const handlePickupUpdated = (data) => {
+      console.log("✏️ Pickup updated in admin:", data);
+      fetchPickups();
+    };
+
+    // Listen for pickup completion
+    const handlePickupCompleted = (data) => {
+      console.log("✅ Pickup completed in admin:", data);
+      fetchPickups();
+    };
+
+    // Listen for pickup deletion
+    const handlePickupDeleted = (data) => {
+      console.log("🗑️ Pickup deleted in admin:", data);
+      fetchPickups();
+    };
+
+    // Listen for pickup assignment
+    const handlePickupAssigned = (data) => {
+      console.log("🚚 Pickup assigned in admin:", data);
+      fetchPickups();
+    };
+
+    // Register all event listeners
+    socket.on("new-pickup", handleNewPickup);
+    socket.on("pickup-updated", handlePickupUpdated);
+    socket.on("pickup-completed", handlePickupCompleted);
+    socket.on("pickup-deleted", handlePickupDeleted);
+    socket.on("pickup-assigned", handlePickupAssigned);
+
+    // Cleanup listeners on unmount
+    return () => {
+      socket.off("new-pickup", handleNewPickup);
+      socket.off("pickup-updated", handlePickupUpdated);
+      socket.off("pickup-completed", handlePickupCompleted);
+      socket.off("pickup-deleted", handlePickupDeleted);
+      socket.off("pickup-assigned", handlePickupAssigned);
+      console.log("🧹 Socket listeners cleaned up in AdminDashboard");
+    };
+  }, [socket]);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -44,7 +105,7 @@ export default function AdminDashboard() {
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch(`${API_URL}/delivery-agents`, {
+      const res = await fetch(`${API_URL}/api/delivery-agents`, {
         headers: getAuthHeaders(),
         credentials: "include",
       });

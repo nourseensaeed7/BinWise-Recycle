@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AppContent } from "./AppContext";
 import api from "../api/axios";
+import { initSocket, disconnectSocket } from "../utils/socket";
 
 export const AppContextProvider = ({ children }) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -8,6 +9,7 @@ export const AppContextProvider = ({ children }) => {
   const [isLoggedin, setIsLoggedin] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loadingUser, setLoadingUser] = useState(true);
+  const [socket, setSocket] = useState(null);
 
   // Fetch current user data
   const getUserData = async () => {
@@ -21,6 +23,14 @@ export const AppContextProvider = ({ children }) => {
         setUserData(data.userData);
         setIsLoggedin(true);
         console.log("✅ User authenticated:", data.userData.email);
+        
+        // ✅ Initialize socket connection when user is authenticated
+        if (data.userData.id && !socket) {
+          const socketInstance = initSocket(data.userData.id);
+          setSocket(socketInstance);
+          console.log("📡 Socket initialized for user:", data.userData.id);
+        }
+        
         return data.userData;
       } else {
         setUserData(null);
@@ -48,6 +58,7 @@ export const AppContextProvider = ({ children }) => {
         const user = data.userData || data.user;
         setUserData(user);
         console.log("✅ Profile refreshed:", user.email);
+        console.log("📊 Activities count:", user.activity?.length || 0);
       }
     } catch (error) {
       console.error("❌ Failed to refresh user data:", error.response?.data || error.message);
@@ -65,7 +76,6 @@ export const AppContextProvider = ({ children }) => {
       }
 
       console.log("🔍 Checking auth state...");
-      console.log("🎫 Token exists:", token.substring(0, 20) + "...");
 
       const { data } = await api.get("/api/auth/is-auth");
 
@@ -73,6 +83,13 @@ export const AppContextProvider = ({ children }) => {
         setIsLoggedin(true);
         setUserData(data.userData);
         console.log("✅ Auth state verified:", data.userData.email);
+        
+        // ✅ Initialize socket for authenticated user
+        if (data.userData.id && !socket) {
+          const socketInstance = initSocket(data.userData.id);
+          setSocket(socketInstance);
+          console.log("📡 Socket initialized for user:", data.userData.id);
+        }
       } else {
         setIsLoggedin(false);
         setUserData(null);
@@ -98,6 +115,11 @@ export const AppContextProvider = ({ children }) => {
     console.log("🚀 AppContextProvider mounted");
     console.log("🌐 Backend URL:", backendUrl);
     getAuthState();
+
+    // Cleanup socket on unmount
+    return () => {
+      disconnectSocket();
+    };
   }, []);
 
   // Logout helper
@@ -107,6 +129,10 @@ export const AppContextProvider = ({ children }) => {
       
       // Call logout endpoint to clear server-side cookies
       await api.post("/api/auth/logout");
+      
+      // Disconnect socket
+      disconnectSocket();
+      setSocket(null);
       
       // Clear client-side storage
       localStorage.removeItem("token");
@@ -118,6 +144,8 @@ export const AppContextProvider = ({ children }) => {
       console.error("❌ Logout error:", error);
       
       // Still clear local data even if API call fails
+      disconnectSocket();
+      setSocket(null);
       localStorage.removeItem("token");
       setIsLoggedin(false);
       setUserData(null);
@@ -135,6 +163,7 @@ export const AppContextProvider = ({ children }) => {
     refreshUserData,
     logout,
     loadingUser,
+    socket, // ✅ Expose socket to all components
   };
 
   return <AppContent.Provider value={value}>{children}</AppContent.Provider>;
