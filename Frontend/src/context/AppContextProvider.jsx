@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AppContent } from "./AppContext";
 import axios from "axios";
+import api from "../api/axios";
 
 export const AppContextProvider = ({ children }) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -28,7 +29,7 @@ export const AppContextProvider = ({ children }) => {
   // Fetch current user data
   const getUserData = async () => {
     try {
-      const { data } = await axios.get(`${backendUrl}/auth/is-auth`);
+      const { data } = await api.get(`${backendUrl}/auth/is-auth`);
       if (data.success && data.userData) {
         setUserData(data.userData);
         setIsLoggedin(true);
@@ -51,7 +52,7 @@ export const AppContextProvider = ({ children }) => {
   // Refresh user profile
   const refreshUserData = async () => {
     try {
-      const { data } = await axios.get(`${backendUrl}/auth/profile`);
+      const { data } = await api.get(`${backendUrl}/auth/profile`);
       if (data.success && data.user) {
         setUserData(data.user);
       }
@@ -66,7 +67,7 @@ const getAuthState = async () => {
     const token = localStorage.getItem("token"); // ✅ get token from storage
     if (!token) throw new Error("No token in storage");
 
-    const { data } = await axios.get(`${backendUrl}/auth/is-auth`, {
+    const { data } = await api.get(`${backendUrl}/auth/is-auth`, {
       headers: { Authorization: `Bearer ${token}` }, // ✅ send token in header
     });
 

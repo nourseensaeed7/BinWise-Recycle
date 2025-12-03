@@ -3,7 +3,7 @@ import React, { useContext, useState } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContent } from "../context/AppContext";
-import axios from "axios";
+import api from "../api/axios";
 import { toast } from "react-toastify";
 
 const Login = () => {
@@ -18,7 +18,7 @@ const Login = () => {
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    axios.defaults.withCredentials = true;
+    api.defaults.withCredentials = true;
 
     if (!backendUrl) {
       toast.error("Backend URL is missing! Check your .env file.");
@@ -31,14 +31,14 @@ const Login = () => {
       let data;
 
       if (state === "Sign Up") {
-        const res = await axios.post(`${backendUrl}/auth/register`, {
+        const res = await api.post(`${backendUrl}/auth/register`, {
           name,
           email,
           password,
         });
         data = res.data;
       } else {
-        const res = await axios.post(`${backendUrl}/auth/login`, {
+        const res = await api.post(`${backendUrl}/auth/login`, {
           email,
           password,
         });

@@ -1,7 +1,7 @@
 import React, { useReducer, useState, useEffect, useContext } from "react";
 import { useLocation } from "react-router-dom";
 import { Truck } from "lucide-react";
-import axios from "axios";
+import api from "../api/axios";
 import { AppContent } from "../context/AppContext";
 import ReqHistoryCard from "../components/ReqHistoryCard";
 import LoadingSpinner from "../components/LoadingSpinner";
@@ -172,7 +172,7 @@ const PickupPage = () => {
     if (!isLoggedin) return setPickupHistory([]);
     setLoading(true);
     try {
-      const res = await axios.get(`${backendUrl}/pickups/my`, {
+      const res = await api.get(`${backendUrl}/pickups/my`, {
         withCredentials: true,
       });
       setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
@@ -222,12 +222,12 @@ const PickupPage = () => {
 
     try {
       if (editingId) {
-        await axios.put(`${backendUrl}/pickups/${editingId}`, pickupData, {
+        await api.put(`${backendUrl}/pickups/${editingId}`, pickupData, {
           withCredentials: true,
         });
         setEditingId(null);
       } else {
-        await axios.post(`${backendUrl}/pickups`, pickupData, {
+        await api.post(`${backendUrl}/pickups`, pickupData, {
           withCredentials: true,
         });
       }

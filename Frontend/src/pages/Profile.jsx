@@ -5,6 +5,7 @@ import ProfileTabs from "../components/ProfileTab";
 import NavBar from "../components/NavBar";
 import Footer from "../components/Footer";
 import LoadingSpinner from "../components/LoadingSpinner";
+import api from "../api/axios";
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -13,7 +14,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get(
+        const res = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/auth/profile`, {
           withCredentials: true,
         });

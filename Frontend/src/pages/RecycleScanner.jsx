@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import RecycleCamera from "../components/RecycleCamera";
 import { FcIdea } from "react-icons/fc";
 import { GiProgression } from "react-icons/gi";
-import axios from "axios";
+import api from "../api/axios";
 import LoadingSpinner from "../components/LoadingSpinner.jsx";
 
 const RecycleScanner = () => {
@@ -27,7 +27,7 @@ const RecycleScanner = () => {
         setLoading(true);
 
         // Fetch user profile
-        const profileRes = await axios.get(
+        const profileRes = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/auth/profile`,
           {
             withCredentials: true,
@@ -37,7 +37,7 @@ const RecycleScanner = () => {
         setDailyGoal(user.dailyGoal || 5);
 
         // Fetch user's pickups
-        const pickupsRes = await axios.get(
+        const pickupsRes = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/pickups/my`,
           {
             withCredentials: true, // keep this if your backend uses cookies/auth

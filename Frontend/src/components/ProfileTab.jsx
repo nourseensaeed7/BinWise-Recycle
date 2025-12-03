@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api/axios";
 import { CiDiscount1 } from "react-icons/ci";
 import { FaHeart, FaFire } from "react-icons/fa";
 import { FaGifts, FaMedal } from "react-icons/fa6";
@@ -17,14 +17,14 @@ const ProfileTabs = () => {
     const fetchUserData = async () => {
       try {
         // Fetch profile data
-        const profileRes = await axios.get(
+        const profileRes = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/auth/profile`,{
           withCredentials: true,
         });
         if (profileRes.data.success) setUser(profileRes.data.userData);
 
         // Fetch pickups data
-        const pickupsRes = await axios.get(
+        const pickupsRes = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/pickups/my`, {
           withCredentials: true,
         });
