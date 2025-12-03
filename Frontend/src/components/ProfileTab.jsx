@@ -25,7 +25,7 @@ const ProfileTabs = () => {
 
         // Fetch pickups data
         const pickupsRes = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/pickups/my`, {
+          `${import.meta.env.VITE_BACKEND_URL}/api/pickups/my`, {
           withCredentials: true,
         });
 

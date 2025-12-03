@@ -38,7 +38,7 @@ const RecycleScanner = () => {
 
         // Fetch user's pickups
         const pickupsRes = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/pickups/my`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/pickups/my`,
           {
             withCredentials: true, // keep this if your backend uses cookies/auth
           }

@@ -55,7 +55,7 @@ const ReqHistoryCard = ({
     setShowDeleteConfirm(false);
 
     try {
-      const res = await api.delete(`/pickups/${requestId}`);
+      const res = await api.delete(`/api/pickups/${requestId}`);
       if (res.data.success) {
         showToast("Pickup deleted successfully", "success");
         if (onDelete) onDelete(requestId);

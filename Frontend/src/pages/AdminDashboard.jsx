@@ -29,7 +29,7 @@ export default function AdminDashboard() {
 
   const fetchPickups = async () => {
     try {
-      const res = await fetch(`${API_URL}/pickups`, {
+      const res = await fetch(`${API_URL}/api/pickups`, {
         headers: getAuthHeaders(),
         credentials: "include",
       });
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
     if (!activePickup.deliveryAgentId) return alert("Select agent");
 
     try {
-      const res = await fetch(`${API_URL}/pickups/${activePickup._id}/assign`, {
+      const res = await fetch(`${API_URL}/api/pickups/${activePickup._id}/assign`, {
         method: "PUT",
         headers: getAuthHeaders(),
         credentials: "include",
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
   // Mark pickup as completed
   const handleComplete = async (id) => {
     try {
-      const res = await fetch(`${API_URL}/pickups/${id}/complete`, {
+      const res = await fetch(`${API_URL}/api/pickups/${id}/complete`, {
         method: "PUT",
         headers: getAuthHeaders(),
         credentials: "include",

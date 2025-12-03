@@ -38,7 +38,7 @@ const ProfileHeader = () => {
         if (res.data.success) setUser(res.data.userData);
 
         // Fetch user pickups
-        const pickupsRes = await api.get("/pickups/my", { withCredentials: true });
+        const pickupsRes = await api.get("/api/pickups/my", { withCredentials: true });
         if (pickupsRes.data.success) {
           const pickups = pickupsRes.data.pickups;
 

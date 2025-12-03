@@ -172,7 +172,7 @@ const PickupPage = () => {
     if (!isLoggedin) return setPickupHistory([]);
     setLoading(true);
     try {
-      const res = await api.get(`${backendUrl}/pickups/my`, {
+      const res = await api.get(`${backendUrl}/api/pickups/my`, {
         withCredentials: true,
       });
       setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
@@ -222,12 +222,12 @@ const PickupPage = () => {
 
     try {
       if (editingId) {
-        await api.put(`${backendUrl}/pickups/${editingId}`, pickupData, {
+        await api.put(`${backendUrl}/api/pickups/${editingId}`, pickupData, {
           withCredentials: true,
         });
         setEditingId(null);
       } else {
-        await api.post(`${backendUrl}/pickups`, pickupData, {
+        await api.post(`${backendUrl}/api/pickups`, pickupData, {
           withCredentials: true,
         });
       }
