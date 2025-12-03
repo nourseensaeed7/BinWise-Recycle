@@ -29,7 +29,7 @@ export const AppContextProvider = ({ children }) => {
   // Fetch current user data
   const getUserData = async () => {
     try {
-      const { data } = await api.get(`${backendUrl}/apigi/is-auth`);
+      const { data } = await api.get(`${backendUrl}/api/is-auth`);
       if (data.success && data.userData) {
         setUserData(data.userData);
         setIsLoggedin(true);
