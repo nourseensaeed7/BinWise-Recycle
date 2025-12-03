@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import ProfileHeader from "../components/ProfileHeader";
 import ProfileTabs from "../components/ProfileTab";
 import NavBar from "../components/NavBar";

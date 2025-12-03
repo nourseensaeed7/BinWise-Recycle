@@ -158,7 +158,7 @@ const PickupPage = () => {
   // Load user address
   useEffect(() => {
     if (!isLoggedin || !userData?.id || loadingUser) return;
-    axios
+    api
       .get(`${backendUrl}/auth/profile`, { withCredentials: true })
       .then((res) => {
         if (res.data.success && res.data.userData.address)
