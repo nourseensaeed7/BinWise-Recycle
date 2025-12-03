@@ -34,7 +34,7 @@ const ProfileHeader = () => {
     const fetchUserProfile = async () => {
       try {
         // Fetch user data
-        const res = await api.get("/auth/profile", { withCredentials: true });
+        const res = await api.get("/api/auth/profile", { withCredentials: true });
         if (res.data.success) setUser(res.data.userData);
 
         // Fetch user pickups
@@ -96,7 +96,7 @@ const ProfileHeader = () => {
       }
 
       // Send update request
-      const res = await api.put("/auth/update-profile", submitData, {
+      const res = await api.put("/api/auth/update-profile", submitData, {
         withCredentials: true,
         headers: {
           "Content-Type": "multipart/form-data",

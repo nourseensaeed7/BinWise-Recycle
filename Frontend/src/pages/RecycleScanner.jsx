@@ -28,7 +28,7 @@ const RecycleScanner = () => {
 
         // Fetch user profile
         const profileRes = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/profile`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`,
           {
             withCredentials: true,
           }

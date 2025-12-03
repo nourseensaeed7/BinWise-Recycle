@@ -33,7 +33,7 @@ const handleResendOTP = async () => {
 
   try {
     // Change this line:
-    await axios.post(`${backendUrl}/auth/send-verify-otp`, {}, { withCredentials: true });
+    await axios.post(`${backendUrl}/api/auth/send-verify-otp`, {}, { withCredentials: true });
 
     toast.success("A new OTP has been sent to your email");
 
@@ -75,7 +75,7 @@ const handleResendOTP = async () => {
     try {
       const otp = inputRefs.current.map((input) => input.value).join("");
       if (otp.length < 6) return toast.error("Please enter the full 6-digit OTP");
-      const { data } = await axios.post(`${backendUrl}/auth/verify-email`, { otp }, { withCredentials: true });
+      const { data } = await axios.post(`${backendUrl}/api/auth/verify-email`, { otp }, { withCredentials: true });
       if (data.success) {
         toast.success("Email verified successfully!");
       

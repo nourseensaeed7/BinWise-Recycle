@@ -14,7 +14,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const res = await api.get(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/profile`, {
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`, {
           withCredentials: true,
         });
         setUser(res.data.userData || res.data.user); 

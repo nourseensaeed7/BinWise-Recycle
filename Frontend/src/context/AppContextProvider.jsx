@@ -29,7 +29,7 @@ export const AppContextProvider = ({ children }) => {
   // Fetch current user data
   const getUserData = async () => {
     try {
-      const { data } = await api.get(`${backendUrl}/auth/is-auth`);
+      const { data } = await api.get(`${backendUrl}/apigi/is-auth`);
       if (data.success && data.userData) {
         setUserData(data.userData);
         setIsLoggedin(true);
@@ -52,7 +52,7 @@ export const AppContextProvider = ({ children }) => {
   // Refresh user profile
   const refreshUserData = async () => {
     try {
-      const { data } = await api.get(`${backendUrl}/auth/profile`);
+      const { data } = await api.get(`${backendUrl}/api/auth/profile`);
       if (data.success && data.user) {
         setUserData(data.user);
       }
@@ -67,7 +67,7 @@ const getAuthState = async () => {
     const token = localStorage.getItem("token"); // ✅ get token from storage
     if (!token) throw new Error("No token in storage");
 
-    const { data } = await api.get(`${backendUrl}/auth/is-auth`, {
+    const { data } = await api.get(`${backendUrl}./api/auth/is-auth`, {
       headers: { Authorization: `Bearer ${token}` }, // ✅ send token in header
     });
 

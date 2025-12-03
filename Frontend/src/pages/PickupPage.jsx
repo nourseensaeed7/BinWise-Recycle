@@ -159,7 +159,7 @@ const PickupPage = () => {
   useEffect(() => {
     if (!isLoggedin || !userData?.id || loadingUser) return;
     api
-      .get(`${backendUrl}/auth/profile`, { withCredentials: true })
+      .get(`${backendUrl}/api/auth/profile`, { withCredentials: true })
       .then((res) => {
         if (res.data.success && res.data.userData.address)
           dispatch({ type: "SET_ADDRESS", payload: res.data.userData.address });

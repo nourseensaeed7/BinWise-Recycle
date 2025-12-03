@@ -31,7 +31,7 @@ const Login = () => {
       let data;
 
       if (state === "Sign Up") {
-        const res = await api.post(`${backendUrl}/auth/register`, {
+        const res = await api.post(`${backendUrl}/api/auth/register`, {
           name,
           email,
           password,
