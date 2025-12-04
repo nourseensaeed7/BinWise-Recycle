@@ -1,98 +1,47 @@
-// Frontend/src/utils/socket.js
-import { io } from 'socket.io-client';
+import { io } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'https://backend-production-ec018.up.railway.app';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
-let socket = null;
+console.log("🔌 Initializing socket connection to:", BACKEND_URL);
 
-/**
- * Initialize socket connection with user authentication
- * @param {string} userId - The authenticated user's ID
- * @returns {Socket} The socket instance
- */
-export const initSocket = (userId) => {
-  if (socket?.connected) {
-    console.log('⚠️ Socket already connected');
-    return socket;
+// Initialize socket connection
+const socket = io(BACKEND_URL, {
+  withCredentials: true,
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 5000,
+  reconnectionAttempts: 5,
+  autoConnect: false, // Don't connect automatically - let AppContext handle it
+});
+
+// Connection event listeners
+socket.on("connect", () => {
+  console.log("✅ Socket connected:", socket.id);
+});
+
+socket.on("disconnect", (reason) => {
+  console.log("❌ Socket disconnected:", reason);
+  if (reason === "io server disconnect") {
+    // Server disconnected, try to reconnect manually
+    socket.connect();
   }
+});
 
-  console.log('🔌 Initializing socket connection to:', SOCKET_URL);
+socket.on("connect_error", (error) => {
+  console.error("❌ Socket connection error:", error.message);
+});
 
-  socket = io(SOCKET_URL, {
-    transports: ['websocket', 'polling'],
-    withCredentials: true,
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    autoConnect: true,
-  });
+socket.on("reconnect", (attemptNumber) => {
+  console.log(`🔄 Socket reconnected after ${attemptNumber} attempts`);
+});
 
-  socket.on('connect', () => {
-    console.log('✅ Socket connected:', socket.id);
-    
-    // Authenticate user to join their room
-    if (userId) {
-      socket.emit('authenticate', userId);
-      console.log('🔐 Authenticating user:', userId);
-    }
-  });
+socket.on("reconnect_attempt", (attemptNumber) => {
+  console.log(`🔄 Attempting to reconnect... (${attemptNumber})`);
+});
 
-  socket.on('authenticated', (data) => {
-    console.log('✅ Socket authenticated:', data);
-  });
+socket.on("reconnect_failed", () => {
+  console.error("❌ Socket reconnection failed after all attempts");
+});
 
-  socket.on('disconnect', (reason) => {
-    console.log('❌ Socket disconnected:', reason);
-  });
-
-  socket.on('reconnect', (attemptNumber) => {
-    console.log(`🔄 Socket reconnected after ${attemptNumber} attempts`);
-    if (userId) {
-      socket.emit('authenticate', userId);
-    }
-  });
-
-  socket.on('connect_error', (error) => {
-    console.error('❌ Socket connection error:', error.message);
-  });
-
-  return socket;
-};
-
-/**
- * Disconnect the socket connection
- */
-export const disconnectSocket = () => {
-  if (socket) {
-    socket.disconnect();
-    socket = null;
-    console.log('🔌 Socket disconnected manually');
-  }
-};
-
-/**
- * Get the current socket instance
- * @returns {Socket|null} The socket instance or null
- */
-export const getSocket = () => socket;
-
-/**
- * Emit an event to the server
- * @param {string} eventName - Name of the event
- * @param {any} data - Data to send
- */
-export const emitEvent = (eventName, data) => {
-  if (socket?.connected) {
-    socket.emit(eventName, data);
-    console.log(`📤 Emitted event: ${eventName}`, data);
-  } else {
-    console.warn('⚠️ Cannot emit event, socket not connected');
-  }
-};
-
-export default {
-  initSocket,
-  disconnectSocket,
-  getSocket,
-  emitEvent,
-};
+export default socket;
