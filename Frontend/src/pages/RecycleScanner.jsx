@@ -27,7 +27,7 @@ const RecycleScanner = () => {
         setLoading(true);
 
         // Fetch user profile
-        const profileRes = await api.get(`/api/auth/profile`,
+        const profileRes = await api.get(`api/auth/profile`,
           {
             withCredentials: true,
           }
@@ -36,7 +36,7 @@ const RecycleScanner = () => {
         setDailyGoal(user.dailyGoal || 5);
 
         // Fetch user's pickups
-        const pickupsRes = await api.get(`$/api/pickups/my`,
+        const pickupsRes = await api.get(`api/pickups/my`,
           {
             withCredentials: true, // keep this if your backend uses cookies/auth
           }
