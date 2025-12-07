@@ -124,7 +124,8 @@ const reducer = (state, action) => {
 };
 
 const PickupPage = () => {
-  const { userData, isLoggedin, loadingUser, backendUrl, socket } = useContext(AppContent);
+  const { userData, isLoggedin, loadingUser, backendUrl, socket } =
+    useContext(AppContent);
 
   const [state, dispatch] = useReducer(reducer, initState);
   const [pickupHistory, setPickupHistory] = useState([]);
@@ -156,121 +157,127 @@ const PickupPage = () => {
   }, [prefilledItems]);
 
   // Load user address
-// Load user address
-useEffect(() => {
-  if (!isLoggedin || !userData?.id || loadingUser) return;
-  
-  api.get("/api/auth/profile", { withCredentials: true })
-    .then((res) => {
-      console.log("✅ User profile loaded:", res.data);
-      if (res.data.success) {
-        const user = res.data.user || res.data.userData;  // ✅ Handle both response formats
-        if (user.address) {
-          dispatch({ type: "SET_ADDRESS", payload: user.address });
+  // Load user address
+  useEffect(() => {
+    if (!isLoggedin || !userData?.id || loadingUser) return;
+
+    api
+      .get("/api/auth/profile", { withCredentials: true })
+      .then((res) => {
+        console.log("✅ User profile loaded:", res.data);
+        if (res.data.success) {
+          const user = res.data.user || res.data.userData; // ✅ Handle both response formats
+          if (user.address) {
+            dispatch({ type: "SET_ADDRESS", payload: user.address });
+          }
         }
-      }
-    })
-    .catch((err) => {
-      console.error("❌ Error loading profile:", err);
-    });
-}, [isLoggedin, userData?.id, loadingUser]);
-// Fetch pickup history
-const fetchPickups = async () => {
-  if (!isLoggedin) return setPickupHistory([]);
-  setLoading(true);
-  try {
-    const res = await api.get("/api/pickups/my", {
-      withCredentials: true,
-    });
-    console.log("✅ Pickups loaded:", res.data);
-    setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
-  } catch (err) {
-    console.error("❌ Error fetching pickups:", err);
-    setPickupHistory([]);
-  } finally {
-    setLoading(false);
-  }
-};
-useEffect(() => {
-  fetchPickups();
-}, [isLoggedin]);
-
-useEffect(() => {
-  if (!socket || !isLoggedin || !userData?.id) {
-    console.log("⚠️ Socket not available or user not logged in");
-    return;
-  }
-
-  console.log("📡 Setting up socket listeners for user:", userData.id);
-
-  // Ensure user is authenticated
-  socket.emit("authenticate", userData.id);
-
-  // ✅ FIXED: Listen to user-specific events with -user suffix
-  const handlePickupCreated = (data) => {
-    console.log("🆕 Pickup created:", data);
-    toast.success("Pickup request created successfully!");
-    setPickupHistory(prev => [data.pickup, ...prev.slice(0, 2)]);
+      })
+      .catch((err) => {
+        console.error("❌ Error loading profile:", err);
+      });
+  }, [isLoggedin, userData?.id, loadingUser]);
+  // Fetch pickup history
+  const fetchPickups = async () => {
+    if (!isLoggedin) return setPickupHistory([]);
+    setLoading(true);
+    try {
+      const res = await api.get("/api/pickups/my", {
+        withCredentials: true,
+      });
+      console.log("✅ Pickups loaded:", res.data);
+      setPickupHistory(res.data.success ? res.data.pickups.slice(0, 3) : []);
+    } catch (err) {
+      console.error("❌ Error fetching pickups:", err);
+      setPickupHistory([]);
+    } finally {
+      setLoading(false);
+    }
   };
+  useEffect(() => {
+    fetchPickups();
+  }, [isLoggedin]);
 
-  const handlePickupAssignedUser = (data) => {
-    console.log("🚚 Pickup assigned:", data);
-    toast.info(data.message || "Agent assigned to your pickup!");
-    setPickupHistory(prev =>
-      prev.map(p => p._id === data.pickup._id ? data.pickup : p)
-    );
-  };
+  useEffect(() => {
+    if (!socket || !isLoggedin || !userData?.id) {
+      console.log("⚠️ Socket not available or user not logged in");
+      return;
+    }
 
-  const handlePickupCompleted = (data) => {
-    console.log("✅ Pickup completed:", data);
-    setPickupHistory(prev =>
-      prev.map(p => p._id === data.pickup._id ? data.pickup : p)
-    );
-  };
+    console.log("📡 Setting up socket listeners for user:", userData.id);
 
-  const handlePointsAwarded = (data) => {
-    console.log("💰 Points awarded:", data);
-    toast.success(data.message);
-    setPickupHistory(prev =>
-      prev.map(p =>
-        p._id === data.pickupId
-          ? { ...p, status: 'completed', awardedPoints: data.points, gains: data.gains }
-          : p
-      )
-    );
-  };
+    // Ensure user is authenticated
+    socket.emit("authenticate", userData.id);
 
-  const handlePickupUpdatedUser = (data) => {
-    console.log("✏️ Pickup updated:", data);
-    toast.info("Pickup updated");
-    setPickupHistory(prev =>
-      prev.map(p => p._id === data.pickup._id ? data.pickup : p)
-    );
-  };
+    // ✅ FIXED: Listen to user-specific events with -user suffix
+    const handlePickupCreated = (data) => {
+      console.log("🆕 Pickup created:", data);
+      toast.success("Pickup request created successfully!");
+      setPickupHistory((prev) => [data.pickup, ...prev.slice(0, 2)]);
+    };
 
-  const handlePickupDeletedUser = (data) => {
-    console.log("🗑️ Pickup deleted:", data);
-    toast.info(data.message);
-    setPickupHistory(prev => prev.filter(p => p._id !== data.pickupId));
-  };
+    const handlePickupAssignedUser = (data) => {
+      console.log("🚚 Pickup assigned:", data);
+      toast.info(data.message || "Agent assigned to your pickup!");
+      setPickupHistory((prev) =>
+        prev.map((p) => (p._id === data.pickup._id ? data.pickup : p))
+      );
+    };
 
-  // ✅ Register with correct event names
-  socket.on("pickup-created", handlePickupCreated);
-  socket.on("pickup-assigned-user", handlePickupAssignedUser); // Changed!
-  socket.on("pickup-completed", handlePickupCompleted);
-  socket.on("points-awarded", handlePointsAwarded);
-  socket.on("pickup-updated-user", handlePickupUpdatedUser); // Changed!
-  socket.on("pickup-deleted-user", handlePickupDeletedUser); // Changed!
+    const handlePickupCompleted = (data) => {
+      console.log("✅ Pickup completed:", data);
+      setPickupHistory((prev) =>
+        prev.map((p) => (p._id === data.pickup._id ? data.pickup : p))
+      );
+    };
 
-  return () => {
-    socket.off("pickup-created", handlePickupCreated);
-    socket.off("pickup-assigned-user", handlePickupAssignedUser);
-    socket.off("pickup-completed", handlePickupCompleted);
-    socket.off("points-awarded", handlePointsAwarded);
-    socket.off("pickup-updated-user", handlePickupUpdatedUser);
-    socket.off("pickup-deleted-user", handlePickupDeletedUser);
-  };
-}, [socket, isLoggedin, userData?.id]);
+    const handlePointsAwarded = (data) => {
+      console.log("💰 Points awarded:", data);
+      toast.success(data.message);
+      setPickupHistory((prev) =>
+        prev.map((p) =>
+          p._id === data.pickupId
+            ? {
+                ...p,
+                status: "completed",
+                awardedPoints: data.points,
+                gains: data.gains,
+              }
+            : p
+        )
+      );
+    };
+
+    const handlePickupUpdatedUser = (data) => {
+      console.log("✏️ Pickup updated:", data);
+      toast.info("Pickup updated");
+      setPickupHistory((prev) =>
+        prev.map((p) => (p._id === data.pickup._id ? data.pickup : p))
+      );
+    };
+
+    const handlePickupDeletedUser = (data) => {
+      console.log("🗑️ Pickup deleted:", data);
+      toast.info(data.message);
+      setPickupHistory((prev) => prev.filter((p) => p._id !== data.pickupId));
+    };
+
+    // ✅ Register with correct event names
+    socket.on("pickup-created", handlePickupCreated);
+    socket.on("pickup-assigned-user", handlePickupAssignedUser); // Changed!
+    socket.on("pickup-completed", handlePickupCompleted);
+    socket.on("points-awarded", handlePointsAwarded);
+    socket.on("pickup-updated-user", handlePickupUpdatedUser); // Changed!
+    socket.on("pickup-deleted-user", handlePickupDeletedUser); // Changed!
+
+    return () => {
+      socket.off("pickup-created", handlePickupCreated);
+      socket.off("pickup-assigned-user", handlePickupAssignedUser);
+      socket.off("pickup-completed", handlePickupCompleted);
+      socket.off("points-awarded", handlePointsAwarded);
+      socket.off("pickup-updated-user", handlePickupUpdatedUser);
+      socket.off("pickup-deleted-user", handlePickupDeletedUser);
+    };
+  }, [socket, isLoggedin, userData?.id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -480,20 +487,38 @@ useEffect(() => {
             {/* Weight */}
             <div className="flex flex-col gap-2">
               <label className="text-black">Estimated Weight (kg)</label>
+
               <input
                 type="number"
                 placeholder="Enter Weight"
-                min={0.1} // now the minimum is 0.1
-                step="1" // allows decimal increments like 0.1
+                min={0.1}
+                step="0.1"
                 required
-                value={
-                  typeof state.weight === "number"
-                    ? state.weight.toFixed(1)
-                    : ""
-                }
-                onChange={(e) =>
-                  dispatch({ type: "SET_WEIGHT", payload: e.target.value })
-                }
+                value={state.weight ?? ""} // <-- keep raw value
+                onChange={(e) => {
+                  const val = e.target.value;
+
+                  // Allow empty input
+                  if (val === "") {
+                    dispatch({ type: "SET_WEIGHT", payload: "" });
+                    return;
+                  }
+
+                  // Only allow numbers
+                  if (!isNaN(val)) {
+                    dispatch({ type: "SET_WEIGHT", payload: val });
+                  }
+                }}
+                onBlur={() => {
+                  // Format to 1 decimal when user leaves input
+                  const num = parseFloat(state.weight);
+                  if (!isNaN(num)) {
+                    dispatch({
+                      type: "SET_WEIGHT",
+                      payload: num.toFixed(1),
+                    });
+                  }
+                }}
                 className="border-2 border-transparent rounded-xl p-2 bg-gray-100 text-gray-500 w-full focus:outline-none focus:border-2 focus:border-black"
               />
             </div>
@@ -519,12 +544,12 @@ useEffect(() => {
             {state.awardedPoints > 0 && (
               <div className="flex justify-between bg-green-50 p-3 rounded-lg border border-green-200">
                 <div>
-                <p className="font-medium">Total Points:</p>
-                <p>{state.awardedPoints} pts</p>
+                  <p className="font-medium">Total Points:</p>
+                  <p>{state.awardedPoints} pts</p>
                 </div>
-                <div >
-                <p className="font-medium ml-4">Total Earnings:</p>
-                <p>{state.gains.toFixed(2)} EGP</p>
+                <div>
+                  <p className="font-medium ml-4">Total Earnings:</p>
+                  <p>{state.gains.toFixed(2)} EGP</p>
                 </div>
               </div>
             )}
@@ -592,15 +617,19 @@ useEffect(() => {
                 pickupHistory.map((pickup) => (
                   <ReqHistoryCard
                     key={pickup._id}
-                    date={new Date(pickup.createdAt).toLocaleDateString("en-EG")}
+                    date={new Date(pickup.createdAt).toLocaleDateString(
+                      "en-EG"
+                    )}
                     material={pickup.items.map((i) => i.type).join(", ")}
                     items={pickup.items}
                     time={pickup.time_slot}
                     status={pickup.status}
                     address={pickup.address}
                     weight={pickup.weight}
-                    scheduledDate={new Date(pickup.pickupTime).toLocaleDateString("en-EG")}
-                    requestId={pickup._id}  // ✅ Make sure this is the full MongoDB _id
+                    scheduledDate={new Date(
+                      pickup.pickupTime
+                    ).toLocaleDateString("en-EG")}
+                    requestId={pickup._id} // ✅ Make sure this is the full MongoDB _id
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}
                     points={pickup.awardedPoints}
@@ -622,7 +651,9 @@ useEffect(() => {
 
             {isLoggedin && pickupHistory.length > 0 && (
               <div className="flex justify-around mt-4 pt-4 border-t border-gray-200">
-                <p className="text-xs">To see the rest Pickups ,Check your profile</p>
+                <p className="text-xs">
+                  To see the rest Pickups ,Check your profile
+                </p>
                 <button
                   onClick={fetchPickups}
                   className="text-green-700 hover:text-green-800 text-sm font-medium transition-colors cursor-pointer"
