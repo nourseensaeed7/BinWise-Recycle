@@ -14,11 +14,18 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     
+    console.log('🔍 Request Interceptor Debug:');
+    console.log('   URL:', config.url);
+    console.log('   Method:', config.method);
+    console.log('   Token exists in localStorage:', !!token);
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Token added to request:', config.url);
+      console.log('   ✅ Authorization header set');
+      console.log('   Token preview:', token.substring(0, 30) + '...');
     } else {
-      console.warn('⚠️ No token found for request:', config.url);
+      console.warn('   ⚠️ No token found in localStorage for:', config.url);
+      console.warn('   localStorage keys:', Object.keys(localStorage));
     }
     
     return config;
@@ -32,18 +39,28 @@ api.interceptors.request.use(
 // ✅ RESPONSE INTERCEPTOR - Handle token expiration
 api.interceptors.response.use(
   (response) => {
+    console.log('✅ Response received:', response.status, response.config.url);
     return response;
   },
   (error) => {
+    console.error('❌ Response Error:');
+    console.error('   Status:', error.response?.status);
+    console.error('   URL:', error.config?.url);
+    console.error('   Message:', error.response?.data?.message);
+    
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
-      console.warn('🚫 Unauthorized - Token may be expired');
+      console.warn('🚫 Unauthorized - Token may be expired or missing');
+      
+      // Log current token state
+      const token = localStorage.getItem('token');
+      console.log('   Token in storage:', token ? 'EXISTS' : 'MISSING');
       
       // Clear invalid token
       localStorage.removeItem('token');
       
-      // Redirect to login (optional - you can handle this in your components)
-      // window.location.href = '/login';
+      // Don't auto-redirect here - let components handle it
+      // This prevents redirect loops
     }
     
     return Promise.reject(error);
