@@ -218,12 +218,8 @@ const ProfileHeader = () => {
               Edit Profile
             </h2>
             <div className="flex flex-col gap-3">
-              <label htmlFor="pp" className="font-medium">
-                Profile Picture:
-              </label>
-              {imagePreview && (
+            {imagePreview && (
                 <div className="mt-2 flex justify-center">
-                  <p className="text-sm text-gray-600 mb-1">Preview:</p>
                   <img
                     src={imagePreview}
                     alt="Preview"
@@ -231,6 +227,10 @@ const ProfileHeader = () => {
                   />
                 </div>
               )}
+              <label htmlFor="pp" className="font-medium">
+                Profile Picture:
+              </label>
+
               <input
                 id="pp"
                 type="file"
