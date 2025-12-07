@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import api from "../api/axios";
 import LoadingSpinner from "../components/LoadingSpinner";
-import {toast} from "react-toastify";
+import { toast } from "react-toastify";
 
 const ProfileHeader = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const [formData, setFormData] = useState({
     name: "Guest User",
@@ -18,17 +19,16 @@ const ProfileHeader = () => {
     points: 0,
     Gains: 0,
   });
-  
+
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add("overflow-hidden");
     } else {
       document.body.classList.remove("overflow-hidden");
     }
-  
+
     return () => document.body.classList.remove("overflow-hidden");
   }, [isOpen]);
-  
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -42,26 +42,32 @@ const ProfileHeader = () => {
         if (pickupsRes.data.success) {
           const pickups = pickupsRes.data.pickups;
 
-          const uniqueDays = new Set(pickups.map((p) => new Date(p.createdAt).toDateString()));
+          const uniqueDays = new Set(
+            pickups.map((p) => new Date(p.createdAt).toDateString())
+          );
 
           const totalPointsFromPickups = pickups.reduce(
             (acc, p) => acc + (p.awardedPoints || 0),
             0
           );
 
+          // Set image preview URL
+          const profileImageUrl = res.data.userData.profileImage
+            ? `${import.meta.env.VITE_BACKEND_URL}${res.data.userData.profileImage}`
+            : null;
+
+          setImagePreview(profileImageUrl);
+
           // Update formData with fetched data
           setFormData({
             name: res.data.userData.name,
             email: res.data.userData.email,
             address: res.data.userData.address || "Enter your address",
-            // Add server URL to profile image if it exists
-            profileImage: res.data.userData.profileImage 
-            ? `${import.meta.env.VITE_BACKEND_URL}${res.data.userData.profileImage}`
-            : null,
+            profileImage: null, // Keep this null, use imagePreview for display
             level: res.data.userData.level || "Beginner",
             daysRecycled: uniqueDays.size,
             points: totalPointsFromPickups,
-            Gains: totalPointsFromPickups * 0.15, 
+            Gains: totalPointsFromPickups * 0.15,
           });
         }
       } catch (error) {
@@ -76,24 +82,33 @@ const ProfileHeader = () => {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
-    if (files) setFormData({ ...formData, [name]: files[0] });
-    else setFormData({ ...formData, [name]: value });
+    if (files && files[0]) {
+      // Store the File object
+      setFormData({ ...formData, [name]: files[0] });
+      // Create and set preview URL
+      setImagePreview(URL.createObjectURL(files[0]));
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       // Create FormData for file upload
       const submitData = new FormData();
       submitData.append("name", formData.name);
       submitData.append("email", formData.email);
       submitData.append("address", formData.address);
-      
-      // Only append image if it's a new file (File object)
+
+      // Only append image if a new file was selected
       if (formData.profileImage && formData.profileImage instanceof File) {
         submitData.append("profileImage", formData.profileImage);
+        console.log("📤 Uploading new profile image:", formData.profileImage.name);
       }
+
+      console.log("📤 Submitting profile update...");
 
       // Send update request
       const res = await api.put("/api/auth/update-profile", submitData, {
@@ -104,24 +119,32 @@ const ProfileHeader = () => {
       });
 
       if (res.data.success) {
+        console.log("✅ Profile updated successfully:", res.data);
+
         // Update local state with new data
         setUser(res.data.userData);
-        
-        // Update formData with response (including new image URL)
-        setFormData(prev => ({
+
+        // Update image preview with new URL from server
+        const newImageUrl = res.data.userData.profileImage
+          ? `${import.meta.env.VITE_BACKEND_URL}${res.data.userData.profileImage}`
+          : imagePreview;
+
+        setImagePreview(newImageUrl);
+
+        // Reset form data
+        setFormData((prev) => ({
           ...prev,
           address: res.data.userData.address,
-          profileImage: res.data.userData.profileImage 
-          ? `${import.meta.env.VITE_BACKEND_URL}${res.data.userData.profileImage}`
-           : prev.profileImage,
+          profileImage: null, // Clear the file object
         }));
-        
+
         setIsOpen(false);
         toast.success("Profile updated successfully!");
       }
     } catch (error) {
-      console.error("Error updating profile:", error);
-      alert("Failed to update profile. Please try again.");
+      console.error("❌ Error updating profile:", error);
+      console.error("Error response:", error.response?.data);
+      toast.error("Failed to update profile. Please try again.");
     }
   };
 
@@ -132,17 +155,15 @@ const ProfileHeader = () => {
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 w-full">
         <img
           src={
-            formData.profileImage
-              ? typeof formData.profileImage === "string"
-                ? formData.profileImage
-                : URL.createObjectURL(formData.profileImage)
-              : "https://cdn-icons-png.flaticon.com/512/847/847969.png"
+            imagePreview || "https://cdn-icons-png.flaticon.com/512/847/847969.png"
           }
           alt="Profile"
           className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-green-500 object-cover shadow-md"
         />
         <div className="flex-1">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">{formData.name}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+            {formData.name}
+          </h2>
           <p className="text-gray-500 text-xs sm:text-sm">{formData.email}</p>
           <p className="text-gray-600 text-xs sm:text-sm mt-1">{formData.address}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
@@ -176,12 +197,14 @@ const ProfileHeader = () => {
           onClick={() => setIsOpen(false)}
         >
           <div
-            className="bg-white rounded-2xl p-6 mx-6 w-full max-w-100 relative shadow-xl"
+            className="bg-white rounded-2xl p-6 mx-6 w-full max-w-100 relative shadow-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-xl font-bold mb-4 text-gray-800">Edit Profile</h2>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <label htmlFor="name" className="font-medium">Name:</label>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="name" className="font-medium">
+                Name:
+              </label>
               <input
                 id="name"
                 type="text"
@@ -193,7 +216,9 @@ const ProfileHeader = () => {
                 required
                 readOnly
               />
-              <label htmlFor="email" className="font-medium">Email:</label>
+              <label htmlFor="email" className="font-medium">
+                Email:
+              </label>
               <input
                 id="email"
                 type="email"
@@ -205,17 +230,21 @@ const ProfileHeader = () => {
                 required
                 readOnly
               />
-              <label htmlFor="address" className="font-medium">Address:</label>
+              <label htmlFor="address" className="font-medium">
+                Address:
+              </label>
               <input
                 id="address"
                 type="text"
                 name="address"
-                // value={formData.address}
+                value={formData.address}
                 onChange={handleChange}
                 placeholder="Address"
                 className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
               />
-              <label htmlFor="pp" className="font-medium">Profile Picture:</label>
+              <label htmlFor="pp" className="font-medium">
+                Profile Picture:
+              </label>
               <input
                 id="pp"
                 type="file"
@@ -224,6 +253,16 @@ const ProfileHeader = () => {
                 accept="image/*"
                 className="border p-2 rounded"
               />
+              {imagePreview && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600 mb-1">Preview:</p>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                  />
+                </div>
+              )}
               <div className="flex justify-end gap-3 mt-4">
                 <button
                   type="button"
@@ -233,13 +272,14 @@ const ProfileHeader = () => {
                   Cancel
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleSubmit}
                   className="px-4 py-2 bg-green-700 text-white rounded cursor-pointer hover:bg-green-900 transition"
                 >
                   Save
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}
