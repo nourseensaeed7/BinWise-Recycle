@@ -235,27 +235,18 @@ const ProfileTabs = () => {
                       }`}
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-gray-800">{item.action}</p>
                           <span
                           className={`text-xs font-medium px-2 py-1 rounded-full ${
-                            isCompleted=== "Completed"
-                              ? "bg-green-200 text-green-800"
-                              : isPending === "Pending"
-                              ? " bg-yellow-200 text-yellow-800"
-                              : "bg-blue-200 text-blue-800"
+                            isCompleted
+                            ? "bg-green-200 text-green-800"
+                            : isPending
+                            ? "bg-yellow-200 text-yellow-800"
+                            : "bg-blue-200 text-blue-800"
                           }`}
                         >
                           {statusText}
                         </span>
-                          {/* Gains badge */}
-                          {item.gains > 0 && (
-                            <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">
-                              {item.gains.toFixed(2)} EGP
-                            </span>
-                          )}
-                        </div>
-
                         <p className="text-sm text-gray-500 mt-1">
                           {new Date(item.date).toLocaleDateString()}
                         </p>
