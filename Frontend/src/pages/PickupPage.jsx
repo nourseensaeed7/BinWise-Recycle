@@ -514,11 +514,11 @@ useEffect(() => {
             {/* Points & Earnings */}
             {state.awardedPoints > 0 && (
               <div className="flex justify-between bg-green-50 p-3 rounded-lg border border-green-200">
-                <div className="flex">
+                <div>
                 <p className="font-medium">Total Points:</p>
                 <p>{state.awardedPoints} pts</p>
                 </div>
-                <div className="flex">
+                <div >
                 <p className="font-medium ml-4">Total Earnings:</p>
                 <p>{state.gains.toFixed(2)} EGP</p>
                 </div>
