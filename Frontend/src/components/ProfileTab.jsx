@@ -358,7 +358,7 @@ const ProfileTabs = () => {
                       </div>
 
                       {/* Points & Gains */}
-                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 mt-2 sm:mt-0">
+                      <div className="flex flex-col right-0 sm:flex-row items-end sm:items-center gap-2 mt-2 sm:mt-0">
                         {activityGains > 0 && (
                           <span
                             className={`text-sm font-semibold px-3 py-1 rounded-full shadow-sm ${

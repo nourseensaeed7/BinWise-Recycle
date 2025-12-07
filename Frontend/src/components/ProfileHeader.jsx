@@ -202,6 +202,27 @@ const ProfileHeader = () => {
           >
             <h2 className="text-xl font-bold mb-4 text-gray-800">Edit Profile</h2>
             <div className="flex flex-col gap-3">
+            <label htmlFor="pp" className="font-medium">
+                Profile Picture:
+              </label>
+              <input
+                id="pp"
+                type="file"
+                name="profileImage"
+                onChange={handleChange}
+                accept="image/*"
+                className="border p-2 rounded"
+              />
+              {imagePreview && (
+                <div className="mt-2 flex justify-center">
+                  <p className="text-sm text-gray-600 mb-1">Preview:</p>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                  />
+                </div>
+              )}
               <label htmlFor="name" className="font-medium">
                 Name:
               </label>
@@ -209,10 +230,10 @@ const ProfileHeader = () => {
                 id="name"
                 type="text"
                 name="name"
-                value={formData.name}
+                // value={formData.name}
                 onChange={handleChange}
                 placeholder="Name"
-                className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="border p-2 rounded"
                 required
                 readOnly
               />
@@ -226,7 +247,7 @@ const ProfileHeader = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Email"
-                className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="border p-2 rounded "
                 required
                 readOnly
               />
@@ -242,27 +263,7 @@ const ProfileHeader = () => {
                 placeholder="Address"
                 className="border p-2 rounded focus:outline-none focus:ring-2 focus:ring-green-400"
               />
-              <label htmlFor="pp" className="font-medium">
-                Profile Picture:
-              </label>
-              <input
-                id="pp"
-                type="file"
-                name="profileImage"
-                onChange={handleChange}
-                accept="image/*"
-                className="border p-2 rounded"
-              />
-              {imagePreview && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-600 mb-1">Preview:</p>
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
-                  />
-                </div>
-              )}
+
               <div className="flex justify-end gap-3 mt-4">
                 <button
                   type="button"
