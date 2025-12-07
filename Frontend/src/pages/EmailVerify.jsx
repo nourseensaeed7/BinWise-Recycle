@@ -3,11 +3,11 @@ import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContent } from "../context/AppContext";
 import { toast } from "react-toastify";
-import axios from "axios";
+import api from "../api/axios"; // ✅ Use configured axios instance
 
 const EmailVerify = () => {
   const navigate = useNavigate();
-  const { backendUrl, isLoggedin, userData, getUserData, setUserData } =
+  const { isLoggedin, userData, getUserData, setUserData } =
     useContext(AppContent);
 
   const inputRefs = useRef([]);
@@ -28,31 +28,13 @@ const EmailVerify = () => {
     }
   }, [timer, canResend]);
 
-  // ✅ FIXED: Get token and add to headers
+  // ✅ FIXED: Use api instance instead of axios
   const handleResendOTP = async () => {
     if (!canResend) return;
 
     try {
-      // Get token from localStorage
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error("Please login again");
-        navigate('/login');
-        return;
-      }
-
-      // ✅ Send request with Authorization header
-      await axios.post(
-        `${backendUrl}/api/auth/send-verify-otp`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`, // ✅ Add token here
-          },
-          withCredentials: true, // Keep this for cookies
-        }
-      );
+      // ✅ api instance automatically adds token from localStorage
+      await api.post("/api/auth/send-verify-otp");
 
       toast.success("A new OTP has been sent to your email");
 
@@ -88,33 +70,15 @@ const EmailVerify = () => {
     });
   };
 
-  // ✅ FIXED: Add token to verify email request too
+  // ✅ FIXED: Use api instance instead of axios
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
       const otp = inputRefs.current.map((input) => input.value).join("");
       if (otp.length < 6) return toast.error("Please enter the full 6-digit OTP");
       
-      // Get token from localStorage
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error("Please login again");
-        navigate('/login');
-        return;
-      }
-
-      // ✅ Send request with Authorization header
-      const { data } = await axios.post(
-        `${backendUrl}/api/auth/verify-email`,
-        { otp },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`, // ✅ Add token here
-          },
-          withCredentials: true,
-        }
-      );
+      // ✅ api instance automatically adds token from localStorage
+      const { data } = await api.post("/api/auth/verify-email", { otp });
 
       if (data.success) {
         toast.success("Email verified successfully!");
@@ -125,7 +89,7 @@ const EmailVerify = () => {
           isAccountVerified: true,
         }));
       
-        // Ensure backend state sync (this will overwrite with confirmed data)
+        // Ensure backend state sync
         await getUserData();
       
         // Redirect to home
