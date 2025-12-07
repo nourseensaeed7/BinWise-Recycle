@@ -486,7 +486,7 @@ useEffect(() => {
                 min={0.1} // now the minimum is 0.1
                 step="1" // allows decimal increments like 0.1
                 required
-                value={state.weight.toFixed(1)} // will display prefilled weight from scanner
+                value={state.weight ? state.weight.toFixed(1) : null}
                 onChange={(e) =>
                   dispatch({ type: "SET_WEIGHT", payload: e.target.value })
                 }
