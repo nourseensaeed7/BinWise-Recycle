@@ -12,40 +12,59 @@ const EmailVerify = () => {
 
   const inputRefs = useRef([]);
   const [canResend, setCanResend] = useState(false);
-const [timer, setTimer] = useState(45);
+  const [timer, setTimer] = useState(45);
 
-useEffect(() => {
-  if (!canResend && timer > 0) {
-    const countdown = setInterval(() => {
-      setTimer((prev) => prev - 1);
-    }, 1000);
+  useEffect(() => {
+    if (!canResend && timer > 0) {
+      const countdown = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
 
-    return () => clearInterval(countdown);
-  }
+      return () => clearInterval(countdown);
+    }
 
-  if (timer === 0) {
-    setCanResend(true);
-  }
-}, [timer, canResend]);
+    if (timer === 0) {
+      setCanResend(true);
+    }
+  }, [timer, canResend]);
 
-const handleResendOTP = async () => {
-  if (!canResend) return;
+  // ✅ FIXED: Get token and add to headers
+  const handleResendOTP = async () => {
+    if (!canResend) return;
 
-  try {
-    // Change this line:
-    await axios.post(`${backendUrl}/api/auth/send-verify-otp`, {}, { withCredentials: true });
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        toast.error("Please login again");
+        navigate('/login');
+        return;
+      }
 
-    toast.success("A new OTP has been sent to your email");
+      // ✅ Send request with Authorization header
+      await axios.post(
+        `${backendUrl}/api/auth/send-verify-otp`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`, // ✅ Add token here
+          },
+          withCredentials: true, // Keep this for cookies
+        }
+      );
 
-    // restart timer
-    setCanResend(false);
-    setTimer(45);
+      toast.success("A new OTP has been sent to your email");
 
-  } catch (error) {
-    toast.error(error.response?.data?.message || "Failed to resend OTP");
-  }
-};
+      // Restart timer
+      setCanResend(false);
+      setTimer(45);
 
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      toast.error(error.response?.data?.message || "Failed to resend OTP");
+    }
+  };
 
   // 👉 handle typing input
   const handleInput = (e, index) => {
@@ -69,13 +88,34 @@ const handleResendOTP = async () => {
     });
   };
 
-  // 👉 handle form submit (verify OTP)
+  // ✅ FIXED: Add token to verify email request too
   const onSubmitHandler = async (e) => {
     e.preventDefault();
     try {
       const otp = inputRefs.current.map((input) => input.value).join("");
       if (otp.length < 6) return toast.error("Please enter the full 6-digit OTP");
-      const { data } = await axios.post(`${backendUrl}/api/auth/verify-email`, { otp }, { withCredentials: true });
+      
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        toast.error("Please login again");
+        navigate('/login');
+        return;
+      }
+
+      // ✅ Send request with Authorization header
+      const { data } = await axios.post(
+        `${backendUrl}/api/auth/verify-email`,
+        { otp },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`, // ✅ Add token here
+          },
+          withCredentials: true,
+        }
+      );
+
       if (data.success) {
         toast.success("Email verified successfully!");
       
@@ -93,29 +133,10 @@ const handleResendOTP = async () => {
       }
       
     } catch (error) {
+      console.error("Verify email error:", error);
       toast.error(error.response?.data?.message || error.message);
     }
   };
-
-  // 🔒 Protect route: redirect if not logged in or already verified
-  // useEffect(() => {
-  //   const protectPage = async () => {
-  //     await getUserData(); // ensure fresh user data
-
-  //     // not logged in → login page
-  //     if (!isLoggedin) {
-  //       navigate("/login");
-  //       return;
-  //     }
-
-  //     // already verified → home
-  //     if (userData?.isAccountVerified) {
-  //       navigate("/");
-  //     }
-  //   };
-
-  //   protectPage();
-  // }, [isLoggedin, userData]);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -135,7 +156,7 @@ const handleResendOTP = async () => {
   }, [isLoggedin, userData?.isAccountVerified]);
   
   return (
-    <div className="bg-gray-100 flex flex-col min-h-screen overflow-x-hidden  items-center justify-center">
+    <div className="bg-gray-100 flex flex-col min-h-screen overflow-x-hidden items-center justify-center">
       <div className="p-4 absolute top-4 left-4">
         <img
           onClick={() => navigate("/")}
@@ -147,7 +168,7 @@ const handleResendOTP = async () => {
 
       <form
         onSubmit={onSubmitHandler}
-        className="rounded-lg shadow-lg md:w-96 text-sm p-8 bg-green-50"
+        className="rounded-lg shadow-lg md:w-96 text-sm p-8 bg-white"
       >
         <h1 className="text-center text-2xl font-semibold mb-4">
           Verify Your Email
@@ -182,17 +203,17 @@ const handleResendOTP = async () => {
         </button>
 
         <div className="text-center mt-4">
-  <button
-    type="button"
-    onClick={handleResendOTP}
-    disabled={!canResend}
-    className={`text-sm font-semibold ${
-      canResend ? "text-green-700 cursor-pointer" : "text-gray-400 cursor-not-allowed"
-    }`}
-  >
-    {canResend ? "Resend OTP" : `Resend OTP in ${timer}s`}
-  </button>
-</div>
+          <button
+            type="button"
+            onClick={handleResendOTP}
+            disabled={!canResend}
+            className={`text-sm font-semibold ${
+              canResend ? "text-green-700 cursor-pointer" : "text-gray-400 cursor-not-allowed"
+            }`}
+          >
+            {canResend ? "Resend OTP" : `Resend OTP in ${timer}s`}
+          </button>
+        </div>
       </form>
     </div>
   );

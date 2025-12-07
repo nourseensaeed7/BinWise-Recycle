@@ -1,4 +1,3 @@
-// Improved Login/Signup component matching your logic and upgraded UI
 import React, { useContext, useState } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +7,7 @@ import { toast } from "react-toastify";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContent);
+  const { setIsLoggedin, getUserData } = useContext(AppContent);
 
   const [state, setState] = useState("Sign Up");
   const [name, setName] = useState("");
@@ -18,59 +17,80 @@ const Login = () => {
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    api.defaults.withCredentials = true;
-
-    if (!backendUrl) {
-      toast.error("Backend URL is missing! Check your .env file.");
-      console.error("Missing VITE_BACKEND_URL in .env");
-      return;
-    }
 
     try {
       setLoading(true);
-      let data;
+      let response;
 
       if (state === "Sign Up") {
-        const res = await api.post(`${backendUrl}/api/auth/register`, {
+        console.log("📝 Attempting registration...");
+        // ✅ FIXED: Don't use backendUrl since api already has baseURL
+        response = await api.post("/api/auth/register", {
           name,
           email,
           password,
         });
-        data = res.data;
       } else {
-        const res = await api.post(`${backendUrl}/api/auth/login`, {
+        console.log("🔐 Attempting login...");
+        // ✅ FIXED: Don't use backendUrl since api already has baseURL
+        response = await api.post("/api/auth/login", {
           email,
           password,
         });
-        data = res.data;
       }
 
+      const data = response.data;
+      console.log("📦 Response:", data);
+
       if (data.success) {
-        // Store token in localStorage
-        localStorage.setItem("token", data.token); // <-- This line
-      
-        toast.success(state === "Sign Up" ? "Account created successfully" : "Welcome back");
+        // ✅ CRITICAL: Store token in localStorage
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          console.log("✅ Token saved to localStorage");
+        } else {
+          console.warn("⚠️ No token in response!");
+        }
+
+        toast.success(
+          state === "Sign Up" 
+            ? "Account created successfully! Please verify your email." 
+            : "Welcome back!"
+        );
+        
         setIsLoggedin(true);
-      
-        const user = await getUserData(); // fetch user data after token is set
-      
+
+        // ✅ Fetch user data after token is set (this will use the token from localStorage)
+        const user = await getUserData();
+        console.log("👤 User data fetched:", user);
+
+        // ✅ Redirect based on role and verification status
         if (user?.role === "admin") {
           navigate("/admin");
+        } else if (!user?.isAccountVerified && state === "Sign Up") {
+          // Redirect to email verification for new signups
+          navigate("/email-verify");
         } else {
           navigate("/");
         }
+      } else {
+        toast.error(data.message || "Authentication failed");
       }
+    } catch (error) {
+      console.error("❌ Auth error:", error);
       
-    }catch (error) {
       if (error.response?.data?.message) {
         toast.error(error.response.data.message);
+      } else if (error.response?.status === 401) {
+        toast.error("Invalid email or password");
+      } else if (error.code === 'ERR_NETWORK') {
+        toast.error("Cannot connect to server. Please check your connection.");
       } else {
         toast.error("Network error. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Logo */}

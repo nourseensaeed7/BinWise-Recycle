@@ -1,62 +1,49 @@
-import axios from "axios";
+import axios from 'axios';
 
-// CRITICAL: Don't add /api here if backend already has it
-const baseURL = import.meta.env.VITE_BACKEND_URL;
-
-console.log("📍 API baseURL:", baseURL);
-
+// Create axios instance with base configuration
 const api = axios.create({
-  baseURL,
-  withCredentials: true,
+  baseURL: import.meta.env.VITE_BACKEND_URL || 'https://backend-production-ec018.up.railway.app',
+  withCredentials: true, // Include cookies
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
 });
 
-// Request interceptor - Add token to every request
+// ✅ REQUEST INTERCEPTOR - Automatically add token to all requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    
-    console.log("🚀 API Request:", {
-      method: config.method,
-      url: config.url,
-      fullURL: `${config.baseURL}${config.url}`,
-      hasToken: !!token
-    });
+    const token = localStorage.getItem('token');
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔑 Token added to request:', config.url);
+    } else {
+      console.warn('⚠️ No token found for request:', config.url);
     }
     
     return config;
   },
   (error) => {
-    console.error("❌ Request interceptor error:", error);
+    console.error('❌ Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor - Handle errors globally
+// ✅ RESPONSE INTERCEPTOR - Handle token expiration
 api.interceptors.response.use(
   (response) => {
-    console.log("✅ API Response:", response.status, response.config.url);
     return response;
   },
   (error) => {
-    console.error("❌ API Error:", {
-      status: error.response?.status,
-      url: error.config?.url,
-      message: error.response?.data?.message || error.message
-    });
-    
+    // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
-      console.log("🚪 Unauthorized - Clearing token");
-      localStorage.removeItem("token");
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = "/login";
-      }
+      console.warn('🚫 Unauthorized - Token may be expired');
+      
+      // Clear invalid token
+      localStorage.removeItem('token');
+      
+      // Redirect to login (optional - you can handle this in your components)
+      // window.location.href = '/login';
     }
     
     return Promise.reject(error);
@@ -64,3 +51,70 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// import axios from "axios";
+
+// // CRITICAL: Don't add /api here if backend already has it
+// const baseURL = import.meta.env.VITE_BACKEND_URL;
+
+// console.log("📍 API baseURL:", baseURL);
+
+// const api = axios.create({
+//   baseURL,
+//   withCredentials: true,
+//   headers: {
+//     'Content-Type': 'application/json',
+//   }
+// });
+
+// // Request interceptor - Add token to every request
+// api.interceptors.request.use(
+//   (config) => {
+//     const token = localStorage.getItem("token");
+    
+//     console.log("🚀 API Request:", {
+//       method: config.method,
+//       url: config.url,
+//       fullURL: `${config.baseURL}${config.url}`,
+//       hasToken: !!token
+//     });
+    
+//     if (token) {
+//       config.headers.Authorization = `Bearer ${token}`;
+//     }
+    
+//     return config;
+//   },
+//   (error) => {
+//     console.error("❌ Request interceptor error:", error);
+//     return Promise.reject(error);
+//   }
+// );
+
+// // Response interceptor - Handle errors globally
+// api.interceptors.response.use(
+//   (response) => {
+//     console.log("✅ API Response:", response.status, response.config.url);
+//     return response;
+//   },
+//   (error) => {
+//     console.error("❌ API Error:", {
+//       status: error.response?.status,
+//       url: error.config?.url,
+//       message: error.response?.data?.message || error.message
+//     });
+    
+//     if (error.response?.status === 401) {
+//       console.log("🚪 Unauthorized - Clearing token");
+//       localStorage.removeItem("token");
+//       // Only redirect if not already on login page
+//       if (!window.location.pathname.includes('/login')) {
+//         window.location.href = "/login";
+//       }
+//     }
+    
+//     return Promise.reject(error);
+//   }
+// );
+
+// export default api;
