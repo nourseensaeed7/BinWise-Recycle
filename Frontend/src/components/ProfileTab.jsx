@@ -221,7 +221,8 @@ const ProfileTabs = () => {
                 {activities.map((item, i) => {
                   const isCompleted = item.action?.toLowerCase().includes("completed");
                   const isPending = item.action?.toLowerCase().includes("pending") || item.action?.toLowerCase().includes("created");
-                  
+                  const statusText = isCompleted ? "completed" : isPending ? "pending" : "assigned";
+
                   return (
                     <div
                       key={i}
@@ -236,7 +237,17 @@ const ProfileTabs = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-medium text-gray-800">{item.action}</p>
-
+                          <span
+                          className={`text-xs font-medium px-2 py-1 rounded-full ${
+                            isCompleted=== "Completed"
+                              ? "bg-green-200 text-green-800"
+                              : isPending === "Pending"
+                              ? " bg-yellow-200 text-yellow-800"
+                              : "bg-blue-200 text-blue-800"
+                          }`}
+                        >
+                          {statusText}
+                        </span>
                           {/* Gains badge */}
                           {item.gains > 0 && (
                             <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">
