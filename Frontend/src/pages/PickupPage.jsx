@@ -484,9 +484,9 @@ useEffect(() => {
                 type="number"
                 placeholder="Enter Weight"
                 min={0.1} // now the minimum is 0.1
-                step="0.1" // allows decimal increments like 0.1
+                step="1" // allows decimal increments like 0.1
                 required
-                value={state.weight ? state.weight.toFixed(1) : 0} // will display prefilled weight from scanner
+                value={state.weight.toFixed(1)} // will display prefilled weight from scanner
                 onChange={(e) =>
                   dispatch({ type: "SET_WEIGHT", payload: e.target.value })
                 }
@@ -514,13 +514,13 @@ useEffect(() => {
             {/* Points & Earnings */}
             {state.awardedPoints > 0 && (
               <div className="flex justify-between bg-green-50 p-3 rounded-lg border border-green-200">
-                <div className="flex-row">
-                <span className="font-medium">Total Points:</span>
-                <span>{state.awardedPoints} pts</span>
+                <div className="flex">
+                <p className="font-medium">Total Points:</p>
+                <p>{state.awardedPoints} pts</p>
                 </div>
-                <div className="flex-row">
-                <span className="font-medium ml-4">Total Earnings:</span>
-                <span>{state.gains.toFixed(2)} EGP</span>
+                <div className="flex">
+                <p className="font-medium ml-4">Total Earnings:</p>
+                <p>{state.gains.toFixed(2)} EGP</p>
                 </div>
               </div>
             )}
