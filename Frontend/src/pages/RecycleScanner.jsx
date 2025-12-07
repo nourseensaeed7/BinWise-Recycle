@@ -39,10 +39,10 @@ const RecycleScanner = () => {
       const pickups = pickupsRes.data.pickups || [];
       const todayStr = new Date().toDateString();
 
-      // Count assigned pickups today (green stars)
+      // Count assigned OR completed pickups today (green stars)
       const assignedToday = pickups.filter(
         (p) =>
-          p.status === "assigned" &&
+          (p.status === "assigned" || p.status === "completed") &&
           new Date(p.createdAt).toDateString() === todayStr
       ).length;
 
@@ -56,7 +56,7 @@ const RecycleScanner = () => {
       setAssigned(assignedToday);
       setPending(pendingToday);
 
-      // Check if daily goal is reached (assigned only)
+      // Check if daily goal is reached (assigned + completed)
       if (assignedToday >= dailyGoal) {
         setShowReward(true);
         setTimeout(() => setShowReward(false), 3000);
@@ -168,14 +168,14 @@ const RecycleScanner = () => {
                 </div>
 
                 <div className="flex justify-center gap-2 items-center mb-4 w-full px-4">
-                  {/* Assigned Stars (Green) - Confirmed pickups */}
+                  {/* Assigned + Completed Stars (Green) - Confirmed pickups */}
                   {Array.from(
                     { length: Math.min(assigned, dailyGoal) },
                     (_, i) => (
                       <span
                         key={`assigned-${i}`}
                         className="text-green-500 text-5xl leading-none transition-all duration-300 hover:scale-110"
-                        title="Assigned"
+                        title="Assigned/Completed"
                       >
                         ★
                       </span>
@@ -264,7 +264,7 @@ const RecycleScanner = () => {
                 <div className="mt-4 pt-3 border-t border-gray-200 flex justify-center gap-4 text-xs">
                   <div className="flex items-center gap-1">
                     <span className="text-green-500 text-xl">★</span>
-                    <span className="text-gray-600">Assigned</span>
+                    <span className="text-gray-600">Assigned/Completed</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-yellow-400 text-xl">★</span>

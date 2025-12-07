@@ -168,25 +168,11 @@ export default function AdminDashboard() {
       const data = await res.json();
 
       if (data.success) {
-        // ✅ Socket event will trigger fetchPickups automatically
-        // But we can also update local state immediately for instant feedback
-        const selectedAgent = agents.find(
-          (a) => a._id === activePickup.deliveryAgentId
-        );
-        
-        setPickups((prev) =>
-          prev.map((p) =>
-            p._id === activePickup._id
-              ? {
-                  ...p,
-                  deliveryAgentId: selectedAgent,
-                  pickupTime: selectedDate,
-                  status: "assigned",
-                }
-              : p
-          )
-        );
+        // Close modal first
         setOpenAssign(false);
+        
+        // Fetch fresh data from backend to ensure populated agent info
+        await fetchPickups();
       } else {
         alert(data.message);
       }
