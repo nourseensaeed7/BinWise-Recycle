@@ -11,7 +11,7 @@ import { AppContent } from "../context/AppContext";
 const RecycleScanner = () => {
   const [selected, setSelected] = useState("Paper");
   const [assigned, setAssigned] = useState(0);
-  const [completed, setCompleted] = useState(0);
+  const [pending, setPending] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(5);
   const [loading, setLoading] = useState(true);
   const [showReward, setShowReward] = useState(false);
@@ -39,25 +39,25 @@ const RecycleScanner = () => {
       const pickups = pickupsRes.data.pickups || [];
       const todayStr = new Date().toDateString();
 
-      // Count completed pickups today
-      const completedToday = pickups.filter(
-        (p) =>
-          p.status === "completed" &&
-          new Date(p.createdAt).toDateString() === todayStr
-      ).length;
-
-      // Count assigned pickups today
+      // Count assigned pickups today (green stars)
       const assignedToday = pickups.filter(
         (p) =>
           p.status === "assigned" &&
           new Date(p.createdAt).toDateString() === todayStr
       ).length;
 
-      setCompleted(completedToday);
-      setAssigned(assignedToday);
+      // Count pending pickups today (yellow stars)
+      const pendingToday = pickups.filter(
+        (p) =>
+          p.status === "pending" &&
+          new Date(p.createdAt).toDateString() === todayStr
+      ).length;
 
-      // Check if daily goal is reached
-      if (completedToday >= dailyGoal) {
+      setAssigned(assignedToday);
+      setPending(pendingToday);
+
+      // Check if daily goal is reached (assigned only)
+      if (assignedToday >= dailyGoal) {
         setShowReward(true);
         setTimeout(() => setShowReward(false), 3000);
       }
@@ -168,39 +168,42 @@ const RecycleScanner = () => {
                 </div>
 
                 <div className="flex justify-center gap-2 items-center mb-4 w-full px-4">
-                  {/* Completed Stars (Green) */}
+                  {/* Assigned Stars (Green) - Confirmed pickups */}
                   {Array.from(
-                    { length: Math.min(completed, dailyGoal) },
-                    (_, i) => (
-                      <span
-                        key={`completed-${i}`}
-                        className="text-green-500 text-5xl leading-none transition-all duration-300 hover:scale-110"
-                      >
-                        ★
-                      </span>
-                    )
-                  )}
-
-                  {/* Assigned Stars (Yellow) */}
-                  {Array.from(
-                    { length: Math.min(assigned, dailyGoal - completed) },
+                    { length: Math.min(assigned, dailyGoal) },
                     (_, i) => (
                       <span
                         key={`assigned-${i}`}
-                        className="text-yellow-400 text-5xl leading-none transition-all duration-300 hover:scale-110"
+                        className="text-green-500 text-5xl leading-none transition-all duration-300 hover:scale-110"
+                        title="Assigned"
                       >
                         ★
                       </span>
                     )
                   )}
 
-                  {/* Pending Stars (Gray) */}
+                  {/* Pending Stars (Yellow) - Awaiting assignment */}
                   {Array.from(
-                    { length: Math.max(dailyGoal - completed - assigned, 0) },
+                    { length: Math.min(pending, dailyGoal - assigned) },
                     (_, i) => (
                       <span
                         key={`pending-${i}`}
+                        className="text-yellow-400 text-5xl leading-none transition-all duration-300 hover:scale-110"
+                        title="Pending"
+                      >
+                        ★
+                      </span>
+                    )
+                  )}
+
+                  {/* Empty Stars (Gray) - Not yet created */}
+                  {Array.from(
+                    { length: Math.max(dailyGoal - assigned - pending, 0) },
+                    (_, i) => (
+                      <span
+                        key={`empty-${i}`}
                         className="text-gray-300 text-5xl leading-none"
+                        title="Not started"
                       >
                         ★
                       </span>
@@ -211,19 +214,24 @@ const RecycleScanner = () => {
                 {/* Progress Text */}
                 <div className="text-center">
                   <p className="text-sm text-gray-600 mb-2">
-                    {completed >= dailyGoal ? (
+                    {assigned >= dailyGoal ? (
                       <span className="text-green-600 font-semibold">
                         Daily goal reached! 🎉
                       </span>
                     ) : (
                       <>
                         <span className="font-semibold text-gray-800">
-                          {completed + assigned}/{dailyGoal}
+                          {assigned + pending}/{dailyGoal}
                         </span>
                         {" tasks "}
-                        {assigned > 0 && (
+                        {pending > 0 && (
                           <span className="text-yellow-600">
-                            ({assigned} in progress)
+                            ({pending} pending assignment)
+                          </span>
+                        )}
+                        {assigned > 0 && (
+                          <span className="text-green-600">
+                            {pending > 0 && ", "}({assigned} assigned)
                           </span>
                         )}
                       </>
@@ -236,7 +244,7 @@ const RecycleScanner = () => {
                       className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-500"
                       style={{
                         width: `${Math.min(
-                          ((completed + assigned) / dailyGoal) * 100,
+                          ((assigned + pending) / dailyGoal) * 100,
                           100
                         )}%`,
                       }}
@@ -244,12 +252,28 @@ const RecycleScanner = () => {
                   </div>
 
                   <p className="text-xs text-gray-500 mt-2">
-                    {completed >= dailyGoal
+                    {assigned >= dailyGoal
                       ? "Keep up the great work!"
                       : `${
-                          dailyGoal - completed - assigned
+                          dailyGoal - assigned - pending
                         } more to reach your goal`}
                   </p>
+                </div>
+
+                {/* Legend */}
+                <div className="mt-4 pt-3 border-t border-gray-200 flex justify-center gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <span className="text-green-500 text-xl">★</span>
+                    <span className="text-gray-600">Assigned</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-400 text-xl">★</span>
+                    <span className="text-gray-600">Pending</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-300 text-xl">★</span>
+                    <span className="text-gray-600">Not Started</span>
+                  </div>
                 </div>
               </div>
             </div>
