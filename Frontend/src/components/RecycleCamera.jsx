@@ -265,13 +265,13 @@ const RecycleCamera = () => {
 
       {/* Loading Overlay */}
       {loading && (
-       <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
-       <div className="bg-white rounded-xl p-6 flex flex-col items-center gap-4 shadow-2xl">
-         <LoadingSpinner />
-         <p className="text-lg font-semibold text-gray-700">Analyzing image...</p>
-         <p className="text-sm text-gray-500">This may take a few moments</p>
-       </div>
-     </div>
+        <div className="fixed inset-0 bg-transparent backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 flex flex-col items-center gap-4 shadow-2xl">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          <p className="text-lg font-semibold text-gray-700">Analyzing image...</p>
+          <p className="text-sm text-gray-500">This may take a few moments</p>
+        </div>
+      </div>
       )}
 
       {/* Camera */}
