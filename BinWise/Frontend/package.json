@@ -1,0 +1,47 @@
+{
+  "name": "recycle-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@gradio/client": "^2.0.0-dev.1",
+    "@heroicons/react": "^2.2.0",
+    "@tailwindcss/vite": "^4.1.16",
+    "axios": "^1.12.2",
+    "chart.js": "^4.5.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.545.0",
+    "multer": "^2.0.2",
+    "react": "^19.0.0-rc.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.0.0-rc.1",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.5.0",
+    "react-leaflet": "^5.0.0-rc.2",
+    "react-router-dom": "^7.9.1",
+    "react-toastify": "^11.0.5",
+    "react-webcam": "^7.2.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.35.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.4.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.16",
+    "vite": "^7.1.6"
+  }
+}
