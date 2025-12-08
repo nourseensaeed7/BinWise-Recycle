@@ -322,7 +322,7 @@ const PickupPage = () => {
         await api.post(`${backendUrl}/api/pickups`, pickupData, {
           withCredentials: true,
         });
-        toast.success("Pickup created!");
+        // toast.success("Pickup created!");
       }
       // ❌ REMOVE THIS LINE: fetchPickups();
       dispatch({ type: "RESET_FORM" });
