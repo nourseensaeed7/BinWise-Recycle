@@ -10,7 +10,11 @@ export const createAgent = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Agent already exists" });
 
-    const agent = await DeliveryAgent.create({ name, email, phone });
+    const agent = await DeliveryAgent.create({ 
+      name, 
+      email, 
+      phone
+    });
     res.json({ success: true, agent });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

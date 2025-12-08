@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import transporter from "../config/nodemailer.js";
+import { sendEmail, prepareEmailTemplate } from "../config/nodemailer.js";
 import {
   EMAIL_VERIFY_TEMPLATE,
   PASSWORD_RESET_TEMPLATE,
@@ -158,39 +158,94 @@ export const logout = async (req, res) => {
 };
 
 /* =====================================================
-   SEND EMAIL VERIFY OTP
+   SEND EMAIL VERIFY OTP - FIXED VERSION
 ===================================================== */
 export const sendVerifyOtp = async (req, res) => {
   try {
+    console.log("🔍 Starting OTP send process...");
+    console.log("   User ID:", req.userId);
+
+    // Find user
     const user = await userModel.findById(req.userId);
-    if (!user)
+    if (!user) {
+      console.log("❌ User not found");
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
+    }
 
+    console.log("✅ User found:", user.email);
+
+    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log("🔢 OTP generated:", otp);
+
+    // Save OTP to database
     user.verifyOtp = otp;
-    user.verifyOtpExpireAt = Date.now() + 15 * 60 * 1000;
+    user.verifyOtpExpireAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await user.save();
+    console.log("💾 OTP saved to database");
 
-    const emailHtml = EMAIL_VERIFY_TEMPLATE.replace("{OTP}", otp);
+    // Prepare email content
+    console.log("📧 Preparing email...");
+    
+    let emailHtml;
+    try {
+      emailHtml = prepareEmailTemplate(EMAIL_VERIFY_TEMPLATE, {
+        EMAIL: user.email,
+        OTP: otp
+      });
+      console.log("✅ Email template prepared");
+    } catch (templateError) {
+      console.error("❌ Template error:", templateError);
+      // Fallback to simple HTML if template fails
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #186933;">Email Verification</h2>
+          <p>Hello ${user.name || 'User'},</p>
+          <p>Your verification code is:</p>
+          <h1 style="color: #186933; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+          <p>This code will expire in 24 hours.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+          <hr style="border: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">BinWise - Your Recycling Companion</p>
+        </div>
+      `;
+      console.log("⚠️ Using fallback email template");
+    }
 
-    await transporter.sendMail({
-      from: process.env.SENDER_EMAIL,
+    // Send email
+    console.log("📤 Sending email to:", user.email);
+    const result = await sendEmail({
       to: user.email,
-      subject: "Verify Your Email",
+      subject: "Verify Your Email - BinWise",
       html: emailHtml,
     });
 
+    console.log("📬 Email send result:", result);
+
+    if (!result.success) {
+      console.error("❌ Failed to send verification email:", result.error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
+        error: result.error
+      });
+    }
+
+    console.log("✅ Verification OTP sent successfully via", result.provider);
     return res.json({
       success: true,
       message: "OTP sent to your email successfully",
     });
   } catch (error) {
-    console.error("Verify OTP error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Error sending OTP email" });
+    console.error("❌ Critical error in sendVerifyOtp:", error);
+    console.error("   Error stack:", error.stack);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Error sending OTP email",
+      error: error.message 
+    });
   }
 };
 
@@ -251,23 +306,61 @@ export const sendResetOtp = async (req, res) => {
     if (!user)
       return res.status(404).json({ success: false, message: "User not found" });
 
+    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetOtp = otp;
-    user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000;
+    user.resetOtpExpireAt = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save();
 
-    const emailHtml = PASSWORD_RESET_TEMPLATE.replace("{OTP}", otp);
+    console.log("📧 Sending password reset OTP to:", email);
 
-    await transporter.sendMail({
-      from: process.env.SENDER_EMAIL,
+    // Prepare email
+    let emailHtml;
+    try {
+      emailHtml = prepareEmailTemplate(PASSWORD_RESET_TEMPLATE, {
+        EMAIL: email,
+        OTP: otp
+      });
+    } catch (templateError) {
+      console.error("❌ Template error:", templateError);
+      // Fallback to simple HTML
+      emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #186933;">Password Reset</h2>
+          <p>Hello,</p>
+          <p>Your password reset code is:</p>
+          <h1 style="color: #186933; font-size: 32px; letter-spacing: 5px;">${otp}</h1>
+          <p>This code will expire in 15 minutes.</p>
+          <p>If you didn't request this, please ignore this email.</p>
+          <hr style="border: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">BinWise - Your Recycling Companion</p>
+        </div>
+      `;
+    }
+
+    // Send email
+    const result = await sendEmail({
       to: email,
-      subject: "Password Reset OTP",
+      subject: "Password Reset OTP - BinWise",
       html: emailHtml,
     });
 
-    return res.json({ success: true, message: "Reset OTP sent to your email" });
+    if (!result.success) {
+      console.error("❌ Failed to send reset email:", result.error);
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send reset email. Please try again later.",
+        error: result.error
+      });
+    }
+
+    console.log("✅ Password reset OTP sent successfully");
+    return res.json({ 
+      success: true, 
+      message: "Reset OTP sent to your email" 
+    });
   } catch (error) {
-    console.error("Send reset OTP error:", error);
+    console.error("❌ Send reset OTP error:", error);
     return res
       .status(500)
       .json({ success: false, message: "Server error, please try again" });
@@ -319,26 +412,31 @@ export const resetPassword = async (req, res) => {
 export const isAuthenticated = async (req, res) => {
   try {
     const user = await userModel.findById(req.userId).select("-password");
-    if (!user)
-      return res.status(404).json({ success: false, message: "User not found" });
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
 
-    return res.json({
+    res.json({
       success: true,
       userData: {
-        id: user._id,
+        _id: user._id,
+        id: user._id.toString(),
         name: user.name,
         email: user.email,
         role: user.role,
-        level: user.level,
-        badges: user.badges,
         isAccountVerified: user.isAccountVerified,
+        points: user.points || 0,
+        gains: user.gains || 0,
+        activity: user.activity || [],
       },
     });
   } catch (error) {
-    console.error("Auth check error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Server error, please try again" });
+    console.error("Error in isAuthenticated:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -347,36 +445,50 @@ export const isAuthenticated = async (req, res) => {
 ===================================================== */
 export const getUserProfile = async (req, res) => {
   try {
+    console.log("📋 Fetching profile for user:", req.userId);
+    
     const user = await userModel.findById(req.userId).select("-password");
+    
     if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
+      console.log("❌ User not found");
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
     }
+
+    console.log("✅ Profile found:", user.name);
+    console.log("📊 Activities count:", user.activity?.length || 0);
 
     return res.json({
       success: true,
-      userData: {
-        id: user._id,
+      user: {
+        _id: user._id,
+        id: user._id.toString(),
         name: user.name,
         email: user.email,
         role: user.role,
-        level: user.level,
-        points: user.points,
-        daysRecycled: user.daysRecycled,
-        badges: user.badges,
-        stats: user.stats,
-        activity: user.activity,
-        isAccountVerified: user.isAccountVerified,
+        phone: user.phone,
         address: user.address,
         profileImage: user.profileImage,
+        points: user.points || 0,
+        gains: user.gains || 0,
+        level: user.level || 1,
+        daysRecycled: user.daysRecycled || 0,
+        badges: user.badges || [],
+        stats: user.stats || {},
+        activity: user.activity || [],
+        isAccountVerified: user.isAccountVerified,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
-    console.error("Get profile error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch profile data" });
+    console.error("❌ Error fetching profile:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error",
+      error: error.message 
+    });
   }
 };
 
@@ -385,48 +497,60 @@ export const getUserProfile = async (req, res) => {
 ===================================================== */
 export const updateProfile = async (req, res) => {
   try {
-    const { name, email, address, level } = req.body;
-    const profileImage = req.file;
+    const { name, phone, address } = req.body;
+    const userId = req.userId;
 
-    console.log("Address:", address);
-    console.log("File uploaded:", req.file ? req.file.filename : "No file");
+    console.log("✏️ Updating profile for user:", userId);
 
-    const user = await userModel.findById(req.userId);
-    if (!user)
-      return res.status(404).json({ success: false, message: "User not found" });
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (address) updateData.address = address;
 
-    if (name) user.name = name;
-    if (email) user.email = email.toLowerCase();
-    if (address) user.address = address;
-    if (level) user.level = level;
-    if (profileImage) user.profileImage = `/uploads/${profileImage.filename}`;
-    if(req.file) user.profileImage = `/uploads/${req.file.filename}`;
+    if (req.file) {
+      const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+      updateData.profileImage = imageUrl;
+      console.log("📸 New profile image:", imageUrl);
+    }
 
-    await user.save();
+    const user = await userModel.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "User not found" 
+      });
+    }
+
+    console.log("✅ Profile updated successfully");
 
     return res.json({
       success: true,
       message: "Profile updated successfully",
-      userData: {
+      user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
+        phone: user.phone,
         address: user.address,
         profileImage: user.profileImage,
-        level: user.level,
         points: user.points,
-        daysRecycled: user.daysRecycled,
-        badges: user.badges,
-        stats: user.stats,
-        activity: user.activity,
-        isAccountVerified: user.isAccountVerified,
+        gains: user.gains,
+        activity: user.activity || [],
       },
     });
   } catch (error) {
-    console.error("Update profile error:", error);
-    return res
-      .status(500)
-      .json({ success: false, message: "Failed to update profile" });
+    console.error("❌ Error updating profile:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error",
+      error: error.message 
+    });
   }
 };
 
@@ -474,7 +598,3 @@ export const addActivity = async (req, res) => {
       .json({ success: false, message: "Failed to add activity" });
   }
 };
-
-
-
-

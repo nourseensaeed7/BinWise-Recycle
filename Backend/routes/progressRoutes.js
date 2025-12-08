@@ -1,9 +1,12 @@
 import express from "express";
-import { updateDailyProgress } from "../controllers/progressController.js"; // keep logic in controller
+import authMiddleware from "../middleware/authMiddleware.js";
+import { updateDailyProgress } from "../controllers/progressController.js";
 
 const router = express.Router();
 
-// Define route
-router.put("/progress", updateDailyProgress);
+// ✅ Apply auth middleware to protect the route
+router.put("/progress", authMiddleware, updateDailyProgress);
 
-export default router; // now default export works with import progressRoutes
+
+
+export default router;

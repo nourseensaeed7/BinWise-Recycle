@@ -5,12 +5,16 @@
   "main": "Server.js",
   "type": "module",
   "scripts": {
-    "start": "node api/index.js",
+    "start": "node Server.js",
     "dev": "nodemon Server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
