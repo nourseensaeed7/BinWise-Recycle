@@ -89,7 +89,7 @@ export function AboutPage() {
       {/* Hero */}
       <section className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-20 text-center ">
         <h1 className="text-5xl font-bold mb-6">About <span className="text-yellow-300">Bin Wise</span></h1>
-        <p className="max-w-3xl mx-auto text-lg">
+        <p className="max-w-3xl mx-auto text-lg p-1">
       At Bin Wise, we believe that small steps can create a big change. Our mission is to make recycling easier, smarter, and more accessible for everyone.
 
 We provide a platform that helps individuals and communities dispose of waste properly while encouraging eco-friendly habits. By separating recyclable materials and raising awareness, we aim to reduce pollution, save natural resources, and build a cleaner future.

@@ -1,9 +1,10 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContent } from "../context/AppContext";
 import api from "../api/axios";
 import { toast } from "react-toastify";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,6 +15,34 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+
+  // Preload images on component mount
+  useEffect(() => {
+    const imagesToPreload = [assets.logo, assets.leader];
+    let loadedCount = 0;
+
+    const checkAllLoaded = () => {
+      loadedCount++;
+      if (loadedCount === imagesToPreload.length) {
+        setImagesLoaded(true);
+      }
+    };
+
+    imagesToPreload.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+      img.onload = checkAllLoaded;
+      img.onerror = checkAllLoaded; // Continue even if image fails
+    });
+
+    // Fallback: Show content after 2 seconds regardless
+    const fallbackTimer = setTimeout(() => {
+      setImagesLoaded(true);
+    }, 2000);
+
+    return () => clearTimeout(fallbackTimer);
+  }, []);
 
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -24,7 +53,6 @@ const Login = () => {
 
       if (state === "Sign Up") {
         console.log("📝 Attempting registration...");
-        // ✅ FIXED: Don't use backendUrl since api already has baseURL
         response = await api.post("/api/auth/register", {
           name,
           email,
@@ -32,7 +60,6 @@ const Login = () => {
         });
       } else {
         console.log("🔐 Attempting login...");
-        // ✅ FIXED: Don't use backendUrl since api already has baseURL
         response = await api.post("/api/auth/login", {
           email,
           password,
@@ -43,7 +70,6 @@ const Login = () => {
       console.log("📦 Response:", data);
 
       if (data.success) {
-        // ✅ CRITICAL: Store token in localStorage
         if (data.token) {
           localStorage.setItem("token", data.token);
           console.log("✅ Token saved to localStorage");
@@ -59,15 +85,12 @@ const Login = () => {
         
         setIsLoggedin(true);
 
-        // ✅ Fetch user data after token is set (this will use the token from localStorage)
         const user = await getUserData();
         console.log("👤 User data fetched:", user);
 
-        // ✅ Redirect based on role and verification status
         if (user?.role === "admin") {
           navigate("/admin");
         } else if (!user?.isAccountVerified && state === "Sign Up") {
-          // Redirect to email verification for new signups
           navigate("/email-verify");
         } else {
           navigate("/");
@@ -91,8 +114,14 @@ const Login = () => {
       setLoading(false);
     }
   };
+
+  // Show loading spinner while images are loading
+  if (!imagesLoaded) {
+    return <LoadingSpinner />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex flex-col transition-opacity duration-700 ease-out opacity-100">
       {/* Logo */}
       <div className="p-6">
         <img
@@ -192,7 +221,7 @@ const Login = () => {
                 </p>
               ) : (
                 <p>
-                  Don’t have an account?{' '}
+                  Don't have an account?{' '}
                   <span
                     className="text-green-700 cursor-pointer underline"
                     onClick={() => setState("Sign Up")}

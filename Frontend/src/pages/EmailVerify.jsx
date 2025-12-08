@@ -63,21 +63,21 @@ const EmailVerify = () => {
     }
   };
 
-  // 👉 handle typing input
+  //  handle typing input
   const handleInput = (e, index) => {
     if (e.target.value.length > 0 && index < inputRefs.current.length - 1) {
       inputRefs.current[index + 1].focus();
     }
   };
 
-  // 👉 handle backspace navigation
+  //  handle backspace navigation
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace" && e.target.value === "" && index > 0) {
       inputRefs.current[index - 1].focus();
     }
   };
 
-  // 👉 handle paste (e.g., entire OTP copied)
+  //  handle paste (e.g., entire OTP copied)
   const handlePaste = (e) => {
     const paste = e.clipboardData.getData("text").slice(0, 6);
     paste.split("").forEach((char, index) => {
