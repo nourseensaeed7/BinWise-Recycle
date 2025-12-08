@@ -136,7 +136,7 @@ const ReqHistoryCard = ({
           <button
             onClick={handleModify}
             disabled={!isPending || isModifying}
-            className={`bg-transparent border-2 border-black rounded-[10px] px-3 py-1 text-[10px] flex justify-center items-center transition-colors ${
+            className={`bg-transparent border-2 border-black rounded-[10px] px-3 py-1 text-[10px] flex justify-center items-center transition-colors cursor-pointer ${
               isPending && !isModifying
                 ? "text-black hover:bg-black hover:text-white cursor-pointer"
                 : "text-gray-400 border-gray-300 cursor-not-allowed opacity-50"
@@ -148,7 +148,7 @@ const ReqHistoryCard = ({
           <button
             onClick={handleDeleteClick}
             disabled={isCompleted || isDeleting}
-            className={`bg-transparent border-2 rounded-[10px] px-3 py-1 text-[10px] flex justify-center items-center transition-colors ${
+            className={`bg-transparent border-2 rounded-[10px] px-3 py-1 text-[10px] flex justify-center items-center transition-colors cursor-pointer ${
               !isCompleted && !isDeleting
                 ? "border-red-500 text-red-500 hover:bg-red-500 hover:text-white cursor-pointer"
                 : "border-gray-300 text-gray-400 cursor-not-allowed opacity-50"
@@ -197,13 +197,13 @@ const ReqHistoryCard = ({
             <div className="flex gap-3">
               <button
                 onClick={handleCancelDelete}
-                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-xl font-medium hover:bg-gray-300 transition-colors cursor-pointer"
               >
                 Keep Request
               </button>
               <button
                 onClick={handleConfirmDelete}
-                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors"
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors cursor-pointer"
               >
                 Yes, Delete
               </button>
