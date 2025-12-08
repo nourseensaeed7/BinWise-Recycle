@@ -159,3 +159,5 @@ AI Microservice: HuggingFace Spaces
 
 This project is for DEPI graduation purposes. License optional.
 
+
+Deplyment Link: https://bin-wise-recycle.vercel.app/
