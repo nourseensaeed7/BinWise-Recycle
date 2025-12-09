@@ -134,7 +134,6 @@ const PickupPage = () => {
   const [success, setSuccess] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const location = useLocation();
-  // const prefilledItems = location.state?.items || [];
   const prefilledItems = location.state?.items || [];
 
   useEffect(() => {
@@ -157,7 +156,6 @@ const PickupPage = () => {
   }, [prefilledItems]);
 
   // Load user address
-  // Load user address
   useEffect(() => {
     if (!isLoggedin || !userData?.id || loadingUser) return;
 
@@ -166,7 +164,7 @@ const PickupPage = () => {
       .then((res) => {
         console.log("✅ User profile loaded:", res.data);
         if (res.data.success) {
-          const user = res.data.user || res.data.userData; // ✅ Handle both response formats
+          const user = res.data.user || res.data.userData;
           if (user.address) {
             dispatch({ type: "SET_ADDRESS", payload: user.address });
           }
@@ -176,6 +174,7 @@ const PickupPage = () => {
         console.error("❌ Error loading profile:", err);
       });
   }, [isLoggedin, userData?.id, loadingUser]);
+
   // Fetch pickup history
   const fetchPickups = async () => {
     if (!isLoggedin) return setPickupHistory([]);
@@ -193,6 +192,7 @@ const PickupPage = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     fetchPickups();
   }, [isLoggedin]);
@@ -208,7 +208,6 @@ const PickupPage = () => {
     // Ensure user is authenticated
     socket.emit("authenticate", userData.id);
 
-    // ✅ FIXED: Listen to user-specific events with -user suffix
     const handlePickupCreated = (data) => {
       console.log("🆕 Pickup created:", data);
       toast.success("Pickup request created successfully!");
@@ -261,13 +260,12 @@ const PickupPage = () => {
       setPickupHistory((prev) => prev.filter((p) => p._id !== data.pickupId));
     };
 
-    // ✅ Register with correct event names
     socket.on("pickup-created", handlePickupCreated);
-    socket.on("pickup-assigned-user", handlePickupAssignedUser); 
+    socket.on("pickup-assigned-user", handlePickupAssignedUser);
     socket.on("pickup-completed", handlePickupCompleted);
     socket.on("points-awarded", handlePointsAwarded);
-    socket.on("pickup-updated-user", handlePickupUpdatedUser); 
-    socket.on("pickup-deleted-user", handlePickupDeletedUser); 
+    socket.on("pickup-updated-user", handlePickupUpdatedUser);
+    socket.on("pickup-deleted-user", handlePickupDeletedUser);
 
     return () => {
       socket.off("pickup-created", handlePickupCreated);
@@ -282,7 +280,11 @@ const PickupPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    if (!isLoggedin) return toast.error("Please log in to schedule a pickup.");
+    if (!isLoggedin) {
+      toast.error("Please log in to schedule a pickup.");
+      setSubmitting(false);
+      return;
+    }
     if (
       !state.scheduled_date ||
       !state.time_slot ||
@@ -290,6 +292,7 @@ const PickupPage = () => {
       !state.material.length ||
       !state.weight
     ) {
+      toast.error("Please fill all required fields");
       setSubmitting(false);
       return;
     }
@@ -313,24 +316,26 @@ const PickupPage = () => {
 
     try {
       if (editingId) {
+        console.log("✏️ Updating pickup with ID:", editingId);
         await api.put(`${backendUrl}/api/pickups/${editingId}`, pickupData, {
           withCredentials: true,
         });
-        toast.success("Pickup updated!");
+        toast.success("Pickup updated successfully!");
         setEditingId(null);
       } else {
+        console.log("➕ Creating new pickup");
         await api.post(`${backendUrl}/api/pickups`, pickupData, {
           withCredentials: true,
         });
-        // toast.success("Pickup created!");
       }
-      // ❌ REMOVE THIS LINE: fetchPickups();
       dispatch({ type: "RESET_FORM" });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error(err);
-      toast.error("Failed to schedule pickup");
+      toast.error(
+        editingId ? "Failed to update pickup" : "Failed to schedule pickup"
+      );
     } finally {
       setSubmitting(false);
     }
@@ -343,23 +348,42 @@ const PickupPage = () => {
   };
 
   const handleUpdate = (pickup) => {
+    console.log("✏️ handleUpdate called with:", pickup);
+
+    // Set editing ID FIRST
     setEditingId(pickup._id);
+
+    // Parse the scheduled date correctly
+    const scheduledDate = pickup.pickupTime
+      ? new Date(pickup.pickupTime).toISOString().split("T")[0]
+      : "";
+
+    // Populate ALL form fields with existing data
     dispatch({ type: "SET_ADDRESS", payload: pickup.address || "" });
-    dispatch({ type: "SET_WEIGHT", payload: pickup.weight || 0 });
-    dispatch({
-      type: "SET_DATE",
-      payload: pickup.pickupTime
-        ? new Date(pickup.pickupTime).toISOString().split("T")[0]
-        : "",
-    });
+    dispatch({ type: "SET_DATE", payload: scheduledDate });
     dispatch({ type: "SET_TIME", payload: pickup.time_slot || "" });
     dispatch({ type: "SET_INSTRUCTIONS", payload: pickup.instructions || "" });
-    dispatch({ type: "RESET_FORM" });
-    if (Array.isArray(pickup.items))
-      pickup.items.forEach((item) =>
-        dispatch({ type: "SET_MATERIAL", payload: item.type })
-      );
+
+    // Set material FIRST (to calculate points correctly)
+    if (Array.isArray(pickup.items) && pickup.items.length > 0) {
+      const firstMaterial = pickup.items[0].type.toLowerCase();
+      dispatch({ type: "SET_MATERIAL", payload: firstMaterial });
+    }
+
+    // Set weight AFTER material (so points calculate correctly)
+    dispatch({ type: "SET_WEIGHT", payload: String(pickup.weight || "") });
+
+    // Scroll to top so user can see the form
     window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Show a toast notification
+    toast.info("Form loaded with pickup data. Make your changes and submit to update.");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    dispatch({ type: "RESET_FORM" });
+    toast.info("Edit cancelled");
   };
 
   if (loadingUser) return <LoadingSpinner />;
@@ -390,6 +414,22 @@ const PickupPage = () => {
                 <span className="font-medium">Note:</span> You cannot schedule
                 pickups without logging in
               </p>
+            </div>
+          )}
+
+          {/* Editing Mode Indicator */}
+          {editingId && (
+            <div className="mb-4 p-3 bg-orange-50 rounded-lg border border-orange-200 flex items-center justify-between">
+              <p className="text-xs md:text-sm text-orange-700">
+                <span className="font-medium">✏️ Editing Mode:</span> Modify the
+                fields below and click "Update Pickup" to save changes
+              </p>
+              <button
+                onClick={handleCancelEdit}
+                className="text-orange-700 hover:text-orange-900 underline text-sm font-medium cursor-pointer"
+              >
+                Cancel Edit
+              </button>
             </div>
           )}
 
@@ -450,7 +490,7 @@ const PickupPage = () => {
             {/* Materials */}
             <div className="flex flex-col gap-1">
               <label className="text-black">Material for pickup</label>
-              <p className="text-xs mx-1">You can Only pick on material.</p>
+              <p className="text-xs mx-1">You can Only pick one material.</p>
               <div className="grid capitalize grid-cols-2 gap-1 md:m-1 md:gap-3">
                 {[
                   "plastic",
@@ -467,10 +507,10 @@ const PickupPage = () => {
                       type="checkbox"
                       id={item}
                       value={item}
-                      checked={state.material.includes(item)} // only one can be selected
+                      checked={state.material.includes(item)}
                       onChange={() =>
                         dispatch({ type: "SET_MATERIAL", payload: item })
-                      } // replace previous selection
+                      }
                       className="accent-gray-800 capitalize"
                     />
                     <label
@@ -487,30 +527,24 @@ const PickupPage = () => {
             {/* Weight */}
             <div className="flex flex-col gap-2">
               <label className="text-black">Estimated Weight (kg)</label>
-
               <input
                 type="number"
                 placeholder="Enter Weight"
                 min={0.1}
                 step="0.1"
                 required
-                value={state.weight ?? ""} // <-- keep raw value
+                value={state.weight ?? ""}
                 onChange={(e) => {
                   const val = e.target.value;
-
-                  // Allow empty input
                   if (val === "") {
                     dispatch({ type: "SET_WEIGHT", payload: "" });
                     return;
                   }
-
-                  // Only allow numbers
                   if (!isNaN(val)) {
                     dispatch({ type: "SET_WEIGHT", payload: val });
                   }
                 }}
                 onBlur={() => {
-                  // Format to 1 decimal when user leaves input
                   const num = parseFloat(state.weight);
                   if (!isNaN(num)) {
                     dispatch({
@@ -535,7 +569,7 @@ const PickupPage = () => {
                   })
                 }
                 className="border-2 border-black rounded-2xl p-2 w-full h-16 bg-transparent focus:border-2 focus:border-black"
-                placeholder="Detected items will appear here — this field cannot be edited."
+                placeholder="Detected items will appear here – this field cannot be edited."
                 readOnly
               />
             </div>
@@ -570,13 +604,15 @@ const PickupPage = () => {
                   ? "Updating..."
                   : "Scheduling..."
                 : editingId
-                ? "Update"
+                ? "Update Pickup"
                 : "Schedule Pickup"}
             </button>
 
             {success && (
               <div className="mt-4 p-4 bg-[rgba(0,0,0,0.2)] border border-green-200 rounded-lg text-green-800">
-                Pickup scheduled successfully! wait for confirmation.
+                {editingId
+                  ? "Pickup updated successfully!"
+                  : "Pickup scheduled successfully! Wait for confirmation."}
               </div>
             )}
           </form>
@@ -629,7 +665,7 @@ const PickupPage = () => {
                     scheduledDate={new Date(
                       pickup.pickupTime
                     ).toLocaleDateString("en-EG")}
-                    requestId={pickup._id} // ✅ Make sure this is the full MongoDB _id
+                    requestId={pickup._id}
                     onDelete={handleDelete}
                     onUpdate={handleUpdate}
                     points={pickup.awardedPoints}
@@ -652,7 +688,7 @@ const PickupPage = () => {
             {isLoggedin && pickupHistory.length > 0 && (
               <div className="flex justify-around mt-4 pt-4 border-t border-gray-200">
                 <p className="text-xs">
-                  To see the rest Pickups ,Check your profile
+                  To see the rest Pickups, Check your profile
                 </p>
                 <button
                   onClick={fetchPickups}
