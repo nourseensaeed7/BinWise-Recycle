@@ -32,7 +32,7 @@ export default function AdminDashboard() {
 
     // Only join admin room if user is actually an admin
     if (userData.role === 'admin') {
-      console.log("👔 Joining admin room...");
+      console.log("🔑 Joining admin room...");
       socket.emit('join-admin-room');
       
       // Optional: Listen for confirmation (if your backend sends one)
@@ -151,52 +151,52 @@ export default function AdminDashboard() {
     setOpenAssign(true);
   };
 
-// Assign pickup to agent
-const handleAssign = async () => {
-  if (!activePickup.deliveryAgentId) return alert("Select agent");
+  // Assign pickup to agent
+  const handleAssign = async () => {
+    if (!activePickup.deliveryAgentId) return alert("Select agent");
 
-  console.log("🚚 Attempting to assign pickup:");
-  console.log("   Pickup ID:", activePickup._id);
-  console.log("   Selected Agent ID:", activePickup.deliveryAgentId);
-  console.log("   Available agents:", agents);
+    console.log("🚚 Attempting to assign pickup:");
+    console.log("   Pickup ID:", activePickup._id);
+    console.log("   Selected Agent ID:", activePickup.deliveryAgentId);
+    console.log("   Available agents:", agents);
 
-  try {
-    const res = await fetch(`${API_URL}/api/pickups/${activePickup._id}/assign`, {
-      method: "PUT",
-      headers: getAuthHeaders(),
-      credentials: "include",
-      body: JSON.stringify({
-        deliveryAgentId: activePickup.deliveryAgentId,
-        pickupTime: selectedDate,
-      }),
-    });
-    const data = await res.json();
+    try {
+      const res = await fetch(`${API_URL}/api/pickups/${activePickup._id}/assign`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        credentials: "include",
+        body: JSON.stringify({
+          deliveryAgentId: activePickup.deliveryAgentId,
+          pickupTime: selectedDate,
+        }),
+      });
+      const data = await res.json();
 
-    if (data.success) {
-      console.log("✅ Full assignment response:", JSON.stringify(data, null, 2));
-      console.log("✅ Agent info:", data.pickup?.deliveryAgentId);
-      
-      // If agent info is missing, fetch fresh data
-      if (!data.pickup?.deliveryAgentId) {
-        console.log("⚠️ Agent info missing in response, fetching fresh data...");
-        await fetchPickups();
+      if (data.success) {
+        console.log("✅ Full assignment response:", JSON.stringify(data, null, 2));
+        console.log("✅ Agent info:", data.pickup?.deliveryAgentId);
+        
+        // If agent info is missing, fetch fresh data
+        if (!data.pickup?.deliveryAgentId) {
+          console.log("⚠️ Agent info missing in response, fetching fresh data...");
+          await fetchPickups();
+        } else {
+          // Update local state immediately with the response data
+          setPickups((prev) =>
+            prev.map((p) =>
+              p._id === activePickup._id ? data.pickup : p
+            )
+          );
+        }
+        
+        setOpenAssign(false);
       } else {
-        // Update local state immediately with the response data
-        setPickups((prev) =>
-          prev.map((p) =>
-            p._id === activePickup._id ? data.pickup : p
-          )
-        );
+        alert(data.message);
       }
-      
-      setOpenAssign(false);
-    } else {
-      alert(data.message);
+    } catch (err) {
+      console.error("Assign pickup error:", err);
     }
-  } catch (err) {
-    console.error("Assign pickup error:", err);
-  }
-};
+  };
 
   // Mark pickup as completed
   const handleComplete = async (id) => {
@@ -240,6 +240,7 @@ const handleAssign = async () => {
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
   }, [pickups, statusFilter]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <NavBar />
@@ -276,6 +277,7 @@ const handleAssign = async () => {
             <thead>
               <tr className="text-left border-b">
                 <th className="p-2">User</th>
+                <th className="p-2">Phone</th>
                 <th className="p-2">Assigned Agent</th>
                 <th className="p-2">Status</th>
                 <th className="p-2">Pickup Time</th>
@@ -288,6 +290,9 @@ const handleAssign = async () => {
                 <tr key={p._id} className="border-b">
                   <td className="p-2">
                     {p.userId ? `${p.userId.name} (${p.userId.email})` : "—"}
+                  </td>
+                  <td className="p-2">
+                    {p.userId?.phone || "—"}
                   </td>
                   <td className="p-2">
                     {p.deliveryAgentId
