@@ -2,15 +2,14 @@ import React, { useRef, useState } from "react";
 import { IoCameraOutline } from "react-icons/io5";
 import { MdOutlineFileUpload, MdDeleteOutline } from "react-icons/md";
 import { GrCircleInformation } from "react-icons/gr";
-import LoadingSpinner from "../components/LoadingSpinner";
-import Webcam from "react-webcam";
+import Webcam from "react-webcam"; //react library
 import { useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 
 // Mock data generator
 const generateMockDetection = () => {
-  const materials = ["plastic", "paper", "glass", "metal", "cardboard"];
-  const randomMaterial = materials[Math.floor(Math.random() * materials.length)];
+  const materials = ["plastic", "paper", "glass", "metal", "cardboard"]; //array with material
+  const randomMaterial = materials[Math.floor(Math.random() * materials.length)]; //generate index number
   const randomWeight = Math.floor(Math.random() * 500) + 50; // 50-550g
   
   return {
@@ -27,15 +26,15 @@ const generateMockDetection = () => {
 };
 
 const RecycleCamera = () => {
-  const webcamRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const webcamRef = useRef(null); //access web cam 
+  const fileInputRef = useRef(null); //access upload file
   const navigate = useNavigate();
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [photos, setPhotos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [imgSizes, setImgSizes] = useState({});
+  const [photos, setPhotos] = useState([]);//empty array to store all images with detection
+  const [loading, setLoading] = useState(false);//show loading when processing
+  const [error, setError] = useState("");//to display error messages
+  const [imgSizes, setImgSizes] = useState({});// store the dimensions of each image (bounding box calc)
 
   const urlToBlob = async (url) => {
     const res = await fetch(url);

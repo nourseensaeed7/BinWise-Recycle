@@ -13,26 +13,49 @@ const EmailVerify = () => {
   const inputRefs = useRef([]);
   const [canResend, setCanResend] = useState(false);
   const [timer, setTimer] = useState(45);
-  const [otpSent, setOtpSent] = useState(false); // ✅ Track if OTP was sent
+  
+  // ✅ FIX: Use useRef instead of useState to prevent re-renders
+  const hasInitialOtpSent = useRef(false);
+  const isSending = useRef(false);
 
-  // ✅ Send OTP automatically when component mounts
+  // ✅ Send OTP automatically when component mounts (FIXED - no more double send!)
   useEffect(() => {
     const sendInitialOTP = async () => {
-      if (!otpSent && isLoggedin && userData && !userData.isAccountVerified) {
+      // Only send if:
+      // 1. Not already sent
+      // 2. Not currently sending
+      // 3. User is logged in
+      // 4. User data exists
+      // 5. Account is not verified
+      if (
+        !hasInitialOtpSent.current && 
+        !isSending.current &&
+        isLoggedin && 
+        userData && 
+        !userData.isAccountVerified
+      ) {
+        hasInitialOtpSent.current = true; // Mark as sent IMMEDIATELY
+        isSending.current = true; // Prevent concurrent sends
+        
         try {
+          console.log("📤 Sending initial OTP...");
           await api.post("/api/auth/send-verify-otp");
+          console.log("✅ Initial OTP sent successfully");
           // toast.success("OTP has been sent to your email");
-          setOtpSent(true);
         } catch (error) {
-          console.error("Send OTP error:", error);
+          console.error("❌ Send OTP error:", error);
           toast.error(error.response?.data?.message || "Failed to send OTP");
+          hasInitialOtpSent.current = false; // Reset on error to allow retry
+        } finally {
+          isSending.current = false; // Reset sending flag
         }
       }
     };
 
     sendInitialOTP();
-  }, [isLoggedin, userData, otpSent]);
+  }, [isLoggedin, userData]); // ✅ REMOVED otpSent from dependencies!
 
+  // Timer countdown for resend button
   useEffect(() => {
     if (!canResend && timer > 0) {
       const countdown = setInterval(() => {
@@ -63,21 +86,21 @@ const EmailVerify = () => {
     }
   };
 
-  //  handle typing input
+  // Handle typing input
   const handleInput = (e, index) => {
     if (e.target.value.length > 0 && index < inputRefs.current.length - 1) {
       inputRefs.current[index + 1].focus();
     }
   };
 
-  //  handle backspace navigation
+  // Handle backspace navigation
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace" && e.target.value === "" && index > 0) {
       inputRefs.current[index - 1].focus();
     }
   };
 
-  //  handle paste (e.g., entire OTP copied)
+  // Handle paste (e.g., entire OTP copied)
   const handlePaste = (e) => {
     const paste = e.clipboardData.getData("text").slice(0, 6);
     paste.split("").forEach((char, index) => {
@@ -114,6 +137,7 @@ const EmailVerify = () => {
     }
   };
 
+  // Check access and redirect if necessary
   useEffect(() => {
     const checkAccess = async () => {
       await getUserData(); // ensure latest data from backend
@@ -134,12 +158,12 @@ const EmailVerify = () => {
   return (
     <div className="bg-gray-100 flex flex-col min-h-screen overflow-x-hidden">
       <div className="p-4">
-              <img
-                onClick={() => navigate("/")}
-                src={assets.logo}
-                alt="logo"
-                className="w-28 sm:w-32 cursor-pointer"
-              />
+        <img
+          onClick={() => navigate("/")}
+          src={assets.logo}
+          alt="logo"
+          className="w-28 sm:w-32 cursor-pointer"
+        />
       </div>
 
       <form
